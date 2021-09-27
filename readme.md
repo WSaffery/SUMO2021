@@ -9,6 +9,7 @@ The output to your system is the set of joint positions for the manipulator.
 You must perform analysis of the wrist camera stream to locate and grab the AUV's hook.
 
 There are three rounds: 
+
 1. The AUV is stationary.
 
 2. The AUV moves slowly in one axis.
