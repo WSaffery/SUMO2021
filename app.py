@@ -1,5 +1,6 @@
 import math
 from typing import Dict
+from user import User
 from uuv import UUV
 import pybullet as p
 import pybullet_data
@@ -34,6 +35,7 @@ class App:
         }
         [p.resetJointState(self.bravo_id, jointIndex=self.joint_indices[id], targetValue=default_positions[id]) for id in JOINT_NAMES]
         self.uuv: UUV = UUV()
+        self.user: User = User()
         return
 
     def run(self):
@@ -41,6 +43,14 @@ class App:
             self.uuv.run()
             p.stepSimulation()
             camera_img = self.get_camera_frame()
+            pose = None
+            new_pose = self.user.run(camera_img, pose)
+            [p.setJointMotorControl2(self.bravo_id, 
+                jointIndex=self.joint_indices[id], 
+                controlMode=p.POSITION_CONTROL,
+                targetPosition=new_pose[id]) 
+                for id in JOINT_NAMES]
+
             # cv2.imshow("View", camera_img)
             # cv2.waitKey(0)
             time.sleep(1./240.)
