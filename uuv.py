@@ -17,45 +17,57 @@ class UUV:
         )
 
         self.round = roundNum # which competition round? 1, 2 or 3.
-        self.timeScale = 0.03
-        self.maxVel = 0.9
-        self.phase = 2.0*random.random()*math.pi
 
-        self.PERTURB_FNS: Dict[str, Callable] = { 
-            "random": self.random_perturbation,
-            "sine": self.sine_perturbation,
-        }
-        self.perturb_mode: str = "sine"
+        self.timeScale = 0.01
+        self.maxVel2 = 0.07
+        self.phase2 = 2.0*random.random()*math.pi
 
-        self.sine_x = random.random()
-        self.sine_y = random.random()
-        self.sine_z = random.random()
+        maxPrdScale = 0.1
+        self.prdScales = [1.0 + maxPrdScale*2.0*(random.random() -0.5) for i in range(3)]
+        self.phase3 = [
+            2.0*random.random()*math.pi, 
+            2.0*random.random()*math.pi,
+            math.pi
+        ]
+        self.maxVel3 = [0.04, 0.06, 0.02]
+        
+        # self.PERTURB_FNS: Dict[str, Callable] = { 
+        #     "random": self.random_perturbation,
+        #     "sine": self.sine_perturbation,
+        # }
+        # self.perturb_mode: str = "sine"
+        # self.sine_x = random.random()
+        # self.sine_y = random.random()
+        # self.sine_z = random.random()
     
     def run(self, ticks):
         if self.round == 2:
             return p.resetBaseVelocity(
                 self.id,
-                linearVelocity=[0, self.maxVel*math.sin(self.timeScale*ticks + self.phase), 0]
+                linearVelocity=[0, self.maxVel2*math.sin(self.timeScale*ticks + self.phase2), 0]
             )
         
         if self.round == 3:
             return p.resetBaseVelocity(
                 self.id,
-                linearVelocity=self.get_perturbation()
+                linearVelocity=[
+                    self.maxVel3[i]*math.sin(self.prdScales[i]*self.timeScale*ticks + self.phase3[i])
+                    for i in range(3)
+                ]
             )
         
         return
 
-    def get_perturbation(self) -> List[float]:
-        return self.PERTURB_FNS[self.perturb_mode]()
+    # def get_perturbation(self) -> List[float]:
+    #     return self.PERTURB_FNS[self.perturb_mode]()
         
-    def random_perturbation(self) -> List[float]:
-        perturb = [random.random() * 0.01 for _ in range(3)]
-        return perturb
+    # def random_perturbation(self) -> List[float]:
+    #     perturb = [random.random() * 0.01 for _ in range(3)]
+    #     return perturb
 
-    def sine_perturbation(self) -> List[float]:
-        self.sine_x += 0.01*random.random()
-        self.sine_y += 0.01*random.random()
-        self.sine_z += 0.01*random.random()
-        perturb = [k*math.sin(x) for x, k in [(self.sine_x, 0.3), (self.sine_y, 0.4), (self.sine_z, 0.1)]]
-        return perturb
+    # def sine_perturbation(self) -> List[float]:
+    #     self.sine_x += 0.01*random.random()
+    #     self.sine_y += 0.01*random.random()
+    #     self.sine_z += 0.01*random.random()
+    #     perturb = [k*math.sin(x) for x, k in [(self.sine_x, 0.3), (self.sine_y, 0.4), (self.sine_z, 0.1)]]
+    #     return perturb
