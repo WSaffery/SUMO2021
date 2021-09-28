@@ -8,7 +8,7 @@ import time
 import cv2
 import numpy as np
 
-JOINT_NAMES = ["bravo_7_axis_a", "bravo_7_axis_b", "bravo_7_axis_c", "bravo_7_axis_d", "bravo_7_axis_e", "bravo_7_axis_f", "bravo_7_axis_g"]
+JOINT_NAMES = ["bravo_axis_a", "bravo_axis_b", "bravo_axis_c", "bravo_axis_d", "bravo_axis_e", "bravo_axis_f", "bravo_axis_g"]
 
 
 class App:
@@ -18,20 +18,20 @@ class App:
         p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
 
         self.bravo_id = p.loadURDF(
-                    "bpl_bravo_description/urdf/bravo_7.urdf", 
+                    "bpl_bravo_description/urdf/bravo_7_example_with_camera.urdf",
                     useFixedBase=True)
         joint_info = [p.getJointInfo(self.bravo_id, i)[0:2] for i in range(p.getNumJoints(self.bravo_id))]
         joint_info = [(id, name.decode("utf-8")) for id, name in joint_info]
         self.joint_indices = {str(name): id for id, name in joint_info if str(name) in JOINT_NAMES}
 
         default_positions = {
-            "bravo_7_axis_a": 0, 
-            "bravo_7_axis_b": 0, 
-            "bravo_7_axis_c": math.pi * 0.,
-            "bravo_7_axis_d": math.pi, 
-            "bravo_7_axis_e": math.pi * 0.0, 
-            "bravo_7_axis_f": math.pi * 0.5, 
-            "bravo_7_axis_g": math.pi
+            "bravo_axis_a": 0,
+            "bravo_axis_b": 0,
+            "bravo_axis_c": math.pi * 0.,
+            "bravo_axis_d": math.pi,
+            "bravo_axis_e": math.pi * 0.0,
+            "bravo_axis_f": math.pi * 0.5,
+            "bravo_axis_g": math.pi
         }
         [p.resetJointState(self.bravo_id, jointIndex=self.joint_indices[id], targetValue=default_positions[id]) for id in JOINT_NAMES]
         self.uuv: UUV = UUV()
