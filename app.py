@@ -21,11 +21,11 @@ class App:
         # self.physicsClientId = p.connect(p.DIRECT)
 
         # Disable additional visualisers 
-        p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
-        p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
+        # p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
+        # p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
 
         # Set real time simulation
-        p.setRealTimeSimulation(1)
+        # p.setRealTimeSimulation(1)
 
         p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
 
@@ -42,7 +42,7 @@ class App:
             "bravo_axis_d": math.pi,
             "bravo_axis_e": math.pi * 0.0,
             "bravo_axis_f": math.pi * 0.5,
-            "bravo_axis_g": math.pi
+            "bravo_axis_g": math.pi * 0.5
         }
         [p.resetJointState(self.bravo_id, jointIndex=self.joint_indices[id], targetValue=default_positions[id]) for id in JOINT_NAMES]
         self.uuv: UUV = UUV()
@@ -98,22 +98,43 @@ class App:
         height = 480
         width = 640
         
-        link_state = p.getLinkState(self.physicsClientId, self.camera_end_joint)
-        camera_position = list(link_state[0])
-        camera_euler = R.from_euler("xyz", p.getEulerFromQuaternion(link_state[1])).as_euler("zyx")
-        print(camera_position, camera_euler)
+        link_state = p.getLinkState(self.physicsClientId, self.camera_link_id)
+        camera_eye = list(link_state[0])
+        camera_target = camera_eye
+        camera_target[0] -= 5
+        # camera_euler = p.getEulerFromQuaternion(link_state[1])
+        # print(camera_position, camera_euler)
         
         # ypr = R.from_quat(cameraEuler)
 
         # cameraQuatonian = link_state[1]
         # print(cameraQuatonian)
         
-        view_matrix = p.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=camera_position,
-                                                          distance=0.1,
-                                                          yaw=camera_euler[0],
-                                                          pitch=camera_euler[1],
-                                                          roll=camera_euler[2],
-                                                          upAxisIndex=2)
+        # view_matrix = p.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=camera_position,
+        #                                                   distance=-0.1,
+        #                                                   yaw=camera_euler[0],
+        #                                                   pitch=camera_euler[1],
+        #                                                   roll=camera_euler[2],
+        #                                                   upAxisIndex=1)
+
+        # view_matrix = p.computeViewMatrix([0, 0, 0], [0, 1, 0], [0, 1, 0], physicsClientId=self.physicsClientId)
+        # print(view_matrix)
+
+        
+        t = list(link_state[0])
+        t[0] -= 0.1
+        t_cb = np.array(t).T
+        # print(t_cb)
+        R_cb = R.from_quat(link_state[1]).as_matrix()
+        T_cb = np.array([[0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 1.]])
+        T_cb[0:3, 0:3] = R_cb  # Set rotation matrix
+        T_cb[0:3, -1] = t_cb  # Set translation
+        print(T_cb)
+        T_bc = np.linalg.inv(T_cb)  # Get inverse
+
+        # Extract view matrix
+        view_matrix = list(T_bc.T.flatten())
+        # print(view_matrix)
         
         projection_matrix = p.computeProjectionMatrixFOV(fov=90, aspect=width/height, nearVal=0.1, farVal=100)
                                                 
