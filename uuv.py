@@ -11,15 +11,20 @@ ORIGIN = [0, 0, 0]
 class UUV:
     id: int
     def __init__(self, roundNum) -> None:
+        init_pos = [0, 0, -0.5]
+        maxDist = 0.15
+        random_pos = [2.0*maxDist*(random.random()-0.5) + init_pos[i] for i in range(2)] \
+            + [init_pos[2]]
+
         self.id: int = p.loadURDF("uuv/uuv.urdf",
-            basePosition=[0, 0, -0.5],
+            basePosition=random_pos,
             # baseOrientation=p.getQuaternionFromEuler([math.pi * 0.5, 0, 0])
         )
 
         self.round = roundNum # which competition round? 1, 2 or 3.
 
-        self.timeScale = 0.01
-        self.maxVel2 = 0.07
+        self.timeScale = 0.016
+        self.maxVel2 = 0.05
         self.phase2 = 2.0*random.random()*math.pi
 
         maxPrdScale = 0.1
@@ -29,7 +34,7 @@ class UUV:
             2.0*random.random()*math.pi,
             math.pi
         ]
-        self.maxVel3 = [0.04, 0.06, 0.02]
+        self.maxVel3 = [0.03, 0.045, 0.02]
         
         # self.PERTURB_FNS: Dict[str, Callable] = { 
         #     "random": self.random_perturbation,
