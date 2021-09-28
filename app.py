@@ -18,7 +18,7 @@ class App:
         p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
 
         self.bravo_id = p.loadURDF(
-                    "bpl_bravo_description/urdf/bravo_7_example.urdf",
+                    "bpl_bravo_description/urdf/bravo_7_example_with_camera.urdf",
                     useFixedBase=True)
         joint_info = [p.getJointInfo(self.bravo_id, i)[0:2] for i in range(p.getNumJoints(self.bravo_id))]
         joint_info = [(id, name.decode("utf-8")) for id, name in joint_info]
