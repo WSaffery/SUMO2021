@@ -4,6 +4,8 @@ from typing import Dict
 import math
 from typing import Callable, Optional
 import numpy as np
+import cv2
+
 
 class User:
     def __init__(self) -> None:
@@ -40,6 +42,9 @@ class User:
             position (vec3) and an orientation (quaternion) and it will return a pose
             dictionary of joint angles to approximate the pose.
         """
+        
+        cv2.imshow("View", image)
+        cv2.waitKey(1)
 
         # THIS IS AN EXAMPLE TO SHOW YOU HOW TO MOVE THE MANIPULATOR
         if self.pose["bravo_axis_f"] > math.pi:
@@ -52,4 +57,5 @@ class User:
         #   Inputs: vec3 position, quaternion orientation
         # self.pose = calcIK(np.array([0.8, 0, 0.4]), np.array([1, 0, 0, 0]))
 
+        
         return self.pose

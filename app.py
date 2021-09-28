@@ -145,5 +145,5 @@ class App:
                                                                            view_matrix, self.projection_matrix, 
                                                                            renderer=p.ER_BULLET_HARDWARE_OPENGL, 
                                                                            physicsClientId=self.physicsClientId)
-
+        rgbaPixels = cv2.cvtColor(rgbaPixels, cv2.COLOR_BGR2RGB)
         return rgbaPixels
