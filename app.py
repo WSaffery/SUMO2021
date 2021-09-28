@@ -40,7 +40,9 @@ class App:
         for index, name in joint_info:
             if name == 'camera_end_joint':
                 self.camera_link_id = index
-                break
+
+            if name == 'end_effector_joint':
+                self.end_effector_link = index
         return
 
     def run(self):
@@ -51,6 +53,13 @@ class App:
                            parentLinkIndex=self.camera_link_id)
         p.addUserDebugLine([0.0, 0, 0], [0, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
                            parentLinkIndex=self.camera_link_id)
+
+        p.addUserDebugLine([0.0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.end_effector_link)
+        p.addUserDebugLine([0.0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.end_effector_link)
+        p.addUserDebugLine([0.0, 0, 0], [0, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.end_effector_link)
         while True:
             self.uuv.run()
             p.stepSimulation()
