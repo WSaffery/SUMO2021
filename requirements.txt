@@ -1,3 +1,4 @@
 pybullet
 numpy
 opencv-python
+scipy
