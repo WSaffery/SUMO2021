@@ -125,7 +125,6 @@ class App:
         camera_frame = p.getLinkState(self.physicsClientId, self.camera_link_id)
 
         # Extract wrist camera frame translation vector and rotatin matrix
-        t = list(camera_frame[0])
         t_cb = np.array(camera_frame[0]).T
         R_cb = R.from_quat(camera_frame[1]).as_matrix()
         
