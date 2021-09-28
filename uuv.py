@@ -10,11 +10,16 @@ ORIGIN = [0, 0, 0]
 
 class UUV:
     id: int
-    def __init__(self) -> None:
+    def __init__(self, roundNum) -> None:
         self.id: int = p.loadURDF("uuv/uuv.urdf",
             basePosition=[0, 0, -0.5],
             # baseOrientation=p.getQuaternionFromEuler([math.pi * 0.5, 0, 0])
         )
+
+        self.round = roundNum # which competition round? 1, 2 or 3.
+        self.timeScale = 0.03
+        self.maxVel = 0.9
+        self.phase = 2.0*random.random()*math.pi
 
         self.PERTURB_FNS: Dict[str, Callable] = { 
             "random": self.random_perturbation,
@@ -26,15 +31,19 @@ class UUV:
         self.sine_y = random.random()
         self.sine_z = random.random()
     
-    def run(self):
-        # p.applyExternalForce(self.id,
-        #                     linkIndex=BASE_INDEX,
-        #                     forceObj=self.get_perturbation(),
-        #                     posObj=ORIGIN,
-        #                     flags=p.LINK_FRAME)
-        p.resetBaseVelocity(self.id,
-                            linearVelocity=self.get_perturbation()
-                            )
+    def run(self, ticks):
+        if self.round == 2:
+            return p.resetBaseVelocity(
+                self.id,
+                linearVelocity=[0, self.maxVel*math.sin(self.timeScale*ticks + self.phase), 0]
+            )
+        
+        if self.round == 3:
+            return p.resetBaseVelocity(
+                self.id,
+                linearVelocity=self.get_perturbation()
+            )
+        
         return
 
     def get_perturbation(self) -> List[float]:

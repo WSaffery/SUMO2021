@@ -33,7 +33,7 @@ class User:
 
         global_poses: Dict[str, np.ndarray]
             A dictionary with the global camera and end effector positions. Keys are
-            'camera_end_joint' and 'end_effector_joint'.
+            'camera_end_joint' and 'end_effector_joint', values are vec3.
         
         calcIK: function, (pos: np.ndarray, orient: np.ndarray = None) -> Dict[str, float]
             Function to calculate inverse kinematics. Provide a desired end effector

@@ -7,12 +7,18 @@ import pybullet_data
 import time
 import cv2
 import numpy as np
+import argparse
 
 JOINT_NAMES = ["bravo_axis_a", "bravo_axis_b", "bravo_axis_c", "bravo_axis_d", "bravo_axis_e", "bravo_axis_f", "bravo_axis_g"]
 
 camera_end_joint = 0
 class App:
     def __init__(self):
+        parser = self.init_argparse()
+        args = parser.parse_args()
+        if not args.round:
+            raise argparse.ArgumentError(args.round, "Round argument (-r/--round) not provided.")
+
         print("NUMPY enabled:", p.isNumpyEnabled())
         p.connect(p.GUI)
         p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
@@ -34,8 +40,9 @@ class App:
             "bravo_axis_g": math.pi
         }
         [p.resetJointState(self.bravo_id, jointIndex=self.joint_indices[id], targetValue=default_positions[id]) for id in JOINT_NAMES]
-        self.uuv: UUV = UUV()
+        self.uuv: UUV = UUV(int(args.round))
         self.user: User = User()
+        self.ticks = 0
 
         for index, name in joint_info:
             if name == 'camera_end_joint':
@@ -44,9 +51,16 @@ class App:
             if name == 'end_effector_joint':
                 self.end_effector_link = index
         return
+    
+    def init_argparse(self) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            usage="%(prog)s",
+            description="BLUEPRINT LAB SUMO HACKATHON CHALLENGE 2021"
+        )
+        parser.add_argument("-r", "--round", choices=['1', '2', '3'])
+        return parser
 
     def run(self):
-
         p.addUserDebugLine([0.0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
                            parentLinkIndex=self.camera_link_id)
         p.addUserDebugLine([0.0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
@@ -61,8 +75,10 @@ class App:
         p.addUserDebugLine([0.0, 0, 0], [0, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
                            parentLinkIndex=self.end_effector_link)
         while True:
-            self.uuv.run()
+            self.uuv.run(self.ticks)
             p.stepSimulation()
+            self.ticks += 1
+
             camera_img = self.get_camera_frame()
             global_poses = self.get_global_poses_dict()
             new_pose = self.user.run(camera_img, global_poses, self.calcIK)
