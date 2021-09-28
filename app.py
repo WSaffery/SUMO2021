@@ -22,8 +22,8 @@ SHOW_JAW_PROJECTION = 0.001
 
 
 class App:
-    height = 1080
-    width = 1920
+    height = 480
+    width = 640
     
     projection_matrix = p.computeProjectionMatrixFOV(fov=100, aspect=width/height, nearVal=SHOW_JAW_PROJECTION, farVal=3.5)
     
@@ -151,11 +151,6 @@ class App:
 
             self.update_jaws(new_pose["bravo_axis_a"])
 
-
-            # cv2.imshow("View", camera_img)
-            # cv2.waitKey(1)
-            time.sleep(1./240.)
-
         return
 
     def is_win(self):
@@ -166,7 +161,7 @@ class App:
 
         dist = np.linalg.norm(np.array(end_effector_pos) - np.array(win_pos))
 
-        print(dist)
+        # print(dist)
 
         if dist < 0.05:
             print("WINNER")
