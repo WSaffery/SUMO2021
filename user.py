@@ -25,11 +25,10 @@ class User:
 
 
     def run(self,
-
-        image: list, 
-        global_poses: Dict[str, np.ndarray],
-        calcIK: Callable[[np.ndarray, Optional[np.ndarray]], Dict[str, float]],
-    ) -> Dict[str, float]:
+            image: list, 
+            global_poses: Dict[str, np.ndarray],
+            calcIK: Callable[[np.ndarray, Optional[np.ndarray]], Dict[str, float]],
+            ) -> Dict[str, float]:
         """Run loop to control the Bravo manipulator.
 
         Parameters
