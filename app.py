@@ -64,8 +64,8 @@ class App:
             self.uuv.run()
             p.stepSimulation()
             camera_img = self.get_camera_frame()
-            pose = None
-            new_pose = self.user.run(camera_img, pose, self.calcIK)
+            global_poses = self.get_global_poses_dict()
+            new_pose = self.user.run(camera_img, global_poses, self.calcIK)
             [p.setJointMotorControl2(self.bravo_id, 
                 jointIndex=self.joint_indices[id], 
                 controlMode=p.POSITION_CONTROL,
@@ -83,14 +83,31 @@ class App:
         return
 
     def calcIK(self, pos: np.ndarray, orient: np.ndarray = None) -> Dict[str, float]:
-        poses = p.calculateInverseKinematics(
+        jointPositions = p.calculateInverseKinematics(
             self.bravo_id,
             self.end_effector_link,
             pos,
             targetOrientation=orient
         )
         nJoints = len(JOINT_NAMES)
-        return {JOINT_NAMES[i]: poses[nJoints-1-i] for i in range(nJoints)}
+        return {JOINT_NAMES[i]: jointPositions[nJoints-1-i] for i in range(nJoints)}
+    
+    def get_global_poses_dict(self) -> Dict[str, np.ndarray]:
+        end_effector_pos = p.getLinkState(
+            self.bravo_id, 
+            self.end_effector_link, 
+            computeForwardKinematics=True
+        )[4]
+        camera_pos = p.getLinkState(
+            self.bravo_id, 
+            self.camera_link_id,
+            computeForwardKinematics=True
+        )[4]
+
+        return {
+            'camera_end_joint': camera_pos,
+            'end_effector_joint': end_effector_pos,
+        }
         
     def get_camera_frame(self):
         width, height, rgbaPixels, depthPixels, segMask = p.getCameraImage(width=640, height=480)
