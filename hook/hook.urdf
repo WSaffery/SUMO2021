@@ -1,0 +1,51 @@
+<robot name="hook">
+     <material name="white">
+            <color rgba="1 1 1 0"/>
+          </material>
+         <material name="steel">
+        <color rgba="0.5 0.5 0.5 1"/>
+      </material>
+              <material name="black">
+            <color rgba="0 0 0 1"/>
+          </material>
+    <link name="origin">
+        <visual>
+            <geometry>
+                <mesh filename="hook_white.stl"/>
+            </geometry>
+             <material name="white">
+                <color rgba="1 1 1 1"/>
+              </material>
+        </visual>
+    </link>
+
+    <link name="origin_black">
+
+        <visual>
+            <geometry>
+                <mesh filename="hook_black.stl"/>
+            </geometry>
+             <material name="black"/>
+        </visual>
+    </link>
+
+    <link name="origin_steel">
+
+        <visual>
+            <geometry>
+                <mesh filename="hook_steel.stl"/>
+            </geometry>
+             <material name="steel"/>
+        </visual>
+    </link>
+
+    <joint name="origin_1" type="fixed">
+        <parent link="origin"/>
+        <child link="origin_black"/>
+    </joint>
+
+    <joint name="origin_2" type="fixed">
+        <parent link="origin_black"/>
+        <child link="origin_steel"/>
+    </joint>
+</robot>
