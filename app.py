@@ -52,6 +52,9 @@ class App:
         p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
         p.configureDebugVisualizer(p.COV_ENABLE_TINY_RENDERER, 0)
 
+        # Set the debug camera closer
+        p.resetDebugVisualizerCamera(cameraDistance=1.2, cameraYaw=45, cameraPitch=-45, cameraTargetPosition=[0, 0, 0], physicsClientId=self.physicsClientId)
+
         # Set real time simulation
         p.setRealTimeSimulation(1)
 
