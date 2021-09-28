@@ -44,7 +44,7 @@ class App:
             p.stepSimulation()
             camera_img = self.get_camera_frame()
             pose = None
-            new_pose = self.user.run(camera_img, pose)
+            new_pose = self.user.run(camera_img, pose, self.calcIK)
             [p.setJointMotorControl2(self.bravo_id, 
                 jointIndex=self.joint_indices[id], 
                 controlMode=p.POSITION_CONTROL,
@@ -54,8 +54,17 @@ class App:
             # cv2.imshow("View", camera_img)
             # cv2.waitKey(0)
             time.sleep(1./240.)
-        return    
+        return
 
+    def calcIK(self, pos: np.ndarray, orient: np.ndarray = None) -> Dict[str, float]:
+        poses = p.calculateInverseKinematics(
+            self.bravo_id,
+            self.joint_indices["bravo_7_axis_a"],
+            pos,
+            targetOrientation=orient
+        )
+        return {JOINT_NAMES[i]: poses[i] for i in range(len(JOINT_NAMES))}
+        
     def get_camera_frame(self):
         width, height, rgbaPixels, depthPixels, segMask = p.getCameraImage(width=640, height=480)
         img_array = np.reshape(rgbaPixels, (height, width, 4))
