@@ -14,9 +14,6 @@ from scipy.spatial.transform import Rotation as R
 from user import User
 from uuv import UUV
 
-# TIMESTEP = 100
-# p.setTimeStep(1/TIMESTEP)
-
 
 JOINT_NAMES = ["bravo_axis_a", "bravo_axis_b", "bravo_axis_c", "bravo_axis_d", "bravo_axis_e", "bravo_axis_f", "bravo_axis_g"]
 
@@ -124,9 +121,7 @@ class App:
 
     def run(self):
         start_time = time.time()  # Start time in seconds
-        time_remaining = 59
 
-        last_time = time.time()
         while True:
             self.uuv.run(self.ticks)
             p.stepSimulation()
@@ -136,7 +131,6 @@ class App:
             global_poses = self.get_global_poses_dict()
 
             time_remaining = 59.0 - (time.time() - start_time)
-            # time_remaining -= 1/TIMESTEP
             text = f'Round: {self.round}    Time remaining: {round(time_remaining, 2)}'
             if self.is_win() or self.win_time is not None:
                 if self.win_time is None:
