@@ -166,12 +166,12 @@
   </joint>
   <link name="bravo_1026_1_base_link">
         </link>
-  <joint name="bravo_axis_d" type="revolute">
+  <joint name="bravo_axis_d" type="continuous">
     <parent link="bravo_1026_1_base_link"/>
     <origin rpy="0 0 0" xyz="0 0 0.0005"/>
     <axis xyz="0 0 -1"/>
     <child link="bravo_1026_1_joint_link"/>
-    <limit effort="0" lower="0" upper="6.2" velocity="0"/>
+<!--    <limit effort="0" lower="0" upper="6.2" velocity="0"/>-->
   </joint>
   <link name="bravo_1026_1_joint_link">
     <visual>

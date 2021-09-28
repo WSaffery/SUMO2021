@@ -12,8 +12,8 @@ class UUV:
     id: int
     def __init__(self) -> None:
         self.id: int = p.loadURDF("uuv/uuv.urdf",
-            basePosition=[0, 0, -0.5],
-            # baseOrientation=p.getQuaternionFromEuler([math.pi * 0.5, 0, 0])
+            basePosition=[0.5, 0, -0.05],
+            baseOrientation=p.getQuaternionFromEuler([0, 0, 1.5707])
         )
 
         self.PERTURB_FNS: Dict[str, Callable] = { 
