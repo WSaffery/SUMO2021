@@ -14,6 +14,9 @@ from scipy.spatial.transform import Rotation as R
 from user import User
 from uuv import UUV
 
+# TIMESTEP = 100
+# p.setTimeStep(1/TIMESTEP)
+
 
 JOINT_NAMES = ["bravo_axis_a", "bravo_axis_b", "bravo_axis_c", "bravo_axis_d", "bravo_axis_e", "bravo_axis_f", "bravo_axis_g"]
 
@@ -22,8 +25,8 @@ SHOW_JAW_PROJECTION = 0.001
 
 
 class App:
-    height = 1080
-    width = 1920
+    height = 480
+    width = 640
     
     projection_matrix = p.computeProjectionMatrixFOV(fov=100, aspect=width/height, nearVal=SHOW_JAW_PROJECTION, farVal=3.5)
     
@@ -121,7 +124,9 @@ class App:
 
     def run(self):
         start_time = time.time()  # Start time in seconds
+        time_remaining = 59
 
+        last_time = time.time()
         while True:
             self.uuv.run(self.ticks)
             p.stepSimulation()
@@ -131,6 +136,7 @@ class App:
             global_poses = self.get_global_poses_dict()
 
             time_remaining = 59.0 - (time.time() - start_time)
+            # time_remaining -= 1/TIMESTEP
             text = f'Round: {self.round}    Time remaining: {round(time_remaining, 2)}'
             if self.is_win() or self.win_time is not None:
                 if self.win_time is None:
@@ -154,7 +160,11 @@ class App:
 
             # cv2.imshow("View", camera_img)
             # cv2.waitKey(1)
-            time.sleep(1./240.)
+
+            # dt = time.time() - last_time
+
+            # time_to_sleep = max(0., 1./TIMESTEP - dt)
+            # time.sleep(1./TIMESTEP.)
 
         return
 
@@ -166,7 +176,7 @@ class App:
 
         dist = np.linalg.norm(np.array(end_effector_pos) - np.array(win_pos))
 
-        print(dist)
+        # print(dist)
 
         if dist < 0.05:
             print("WINNER")

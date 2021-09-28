@@ -1,5 +1,5 @@
 """ User code lives here """
-
+import time
 from typing import Dict
 import math
 from typing import Callable, Optional
@@ -19,9 +19,13 @@ class User:
             "bravo_axis_g": math.pi
         }
         self.inc = 0.1
+        self.last_time = time.time()
+
         return
-    
-    def run(self, 
+
+
+    def run(self,
+
         image: list, 
         global_poses: Dict[str, np.ndarray],
         calcIK: Callable[[np.ndarray, Optional[np.ndarray]], Dict[str, float]],
@@ -47,11 +51,11 @@ class User:
         cv2.waitKey(1)
 
         # THIS IS AN EXAMPLE TO SHOW YOU HOW TO MOVE THE MANIPULATOR
-        # if self.pose["bravo_axis_f"] > math.pi:
-        #     self.inc = -0.1
-        # if self.pose["bravo_axis_f"] < math.pi * 0.5:
-        #     self.inc = 0.1
-        # self.pose["bravo_axis_f"] += self.inc
+        if self.pose["bravo_axis_f"] > math.pi:
+            self.inc = -0.1
+        if self.pose["bravo_axis_f"] < math.pi * 0.5:
+            self.inc = 0.1
+        self.pose["bravo_axis_f"] += self.inc
 
         # EXAMPLE USAGE OF INVERSE KINEMATICS SOLVER
         #   Inputs: vec3 position, quaternion orientation
