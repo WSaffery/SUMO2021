@@ -470,10 +470,24 @@
 
     <joint name="camera_end_joint" type="fixed">
         <parent link="camera_base_link"/>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="0.01326 0.05195 +0.02" rpy="0 0 0"/>
         <child link="camera_end_link"/>
     </joint>
 
-    <link name="camera_end_link"/>
+  <link name="camera_end_link">
+    <visual>
+            <geometry>
+                <cylinder radius="0.001" length="0.01"/>
+            </geometry>
+            <origin xyz="=0 0 -0.05" rpy="0 0 0"/>
+            <material name="bravo_black"/>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="0.001" length="0.01"/>
+            </geometry>
+            <origin xyz="=0 0 -0.05" rpy="0 0 0"/>
+        </collision>
+  </link>
 </robot>
 

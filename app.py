@@ -10,7 +10,7 @@ import numpy as np
 
 JOINT_NAMES = ["bravo_axis_a", "bravo_axis_b", "bravo_axis_c", "bravo_axis_d", "bravo_axis_e", "bravo_axis_f", "bravo_axis_g"]
 
-
+camera_end_joint = 0
 class App:
     def __init__(self):
         print("NUMPY enabled:", p.isNumpyEnabled())
@@ -36,9 +36,21 @@ class App:
         [p.resetJointState(self.bravo_id, jointIndex=self.joint_indices[id], targetValue=default_positions[id]) for id in JOINT_NAMES]
         self.uuv: UUV = UUV()
         self.user: User = User()
+
+        for index, name in joint_info:
+            if name == 'camera_end_joint':
+                self.camera_link_id = index
+                break
         return
 
     def run(self):
+
+        p.addUserDebugLine([0.0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.camera_link_id)
+        p.addUserDebugLine([0.0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.camera_link_id)
+        p.addUserDebugLine([0.0, 0, 0], [0, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.camera_link_id)
         while True:
             self.uuv.run()
             p.stepSimulation()
@@ -53,6 +65,11 @@ class App:
 
             # cv2.imshow("View", camera_img)
             # cv2.waitKey(0)
+
+            # get link info
+            camera_state = p.getLinkState(self.bravo_id, self.camera_link_id)
+
+
             time.sleep(1./240.)
         return    
 
