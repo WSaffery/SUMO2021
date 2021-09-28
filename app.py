@@ -12,20 +12,24 @@ from scipy.spatial.transform import Rotation as R
 
 JOINT_NAMES = ["bravo_axis_a", "bravo_axis_b", "bravo_axis_c", "bravo_axis_d", "bravo_axis_e", "bravo_axis_f", "bravo_axis_g"]
 
-camera_end_joint = 0
 class App:
+    height = 480
+    width = 640
+    
+    projection_matrix = p.computeProjectionMatrixFOV(fov=100, aspect=width/height, nearVal=0.1, farVal=100)
+    
+    T_cb = np.array([[0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 1.]])
+    
     def __init__(self):
         print("NUMPY enabled:", p.isNumpyEnabled())
         self.physicsClientId = p.connect(p.GUI)
-        # p.connect(p.SHARED_MEMORY)
-        # self.physicsClientId = p.connect(p.DIRECT)
 
         # Disable additional visualisers 
-        # p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
-        # p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
 
         # Set real time simulation
-        # p.setRealTimeSimulation(1)
+        p.setRealTimeSimulation(1)
 
         p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
 
@@ -57,20 +61,6 @@ class App:
         return
 
     def run(self):
-
-        p.addUserDebugLine([0.0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
-                           parentLinkIndex=self.camera_link_id)
-        p.addUserDebugLine([0.0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
-                           parentLinkIndex=self.camera_link_id)
-        p.addUserDebugLine([0.0, 0, 0], [0, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
-                           parentLinkIndex=self.camera_link_id)
-
-        p.addUserDebugLine([0.0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
-                           parentLinkIndex=self.end_effector_link)
-        p.addUserDebugLine([0.0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
-                           parentLinkIndex=self.end_effector_link)
-        p.addUserDebugLine([0.0, 0, 0], [0, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
-                           parentLinkIndex=self.end_effector_link)
         while True:
             self.uuv.run()
             p.stepSimulation()
@@ -86,60 +76,33 @@ class App:
                 targetPosition=new_pose[id]) 
                 for id in JOINT_NAMES]
 
-            cv2.imshow("View", camera_img)
-            cv2.waitKey(1)
+            # cv2.imshow("View", camera_img)
+            # cv2.waitKey(1)
             time.sleep(1./240.)
         return    
 
-    def get_camera_pose(self):
-        pass
+    def get_view_matrix(self):
+        # Get the current wrist camera frame
+        camera_frame = p.getLinkState(self.physicsClientId, self.camera_link_id)
+
+        # Extract wrist camera frame translation vector and rotatin matrix
+        t = list(camera_frame[0])
+        t_cb = np.array(camera_frame[0]).T
+        R_cb = R.from_quat(camera_frame[1]).as_matrix()
+        
+        # Compute homogeious trnasformation between base and camera frame
+        self.T_cb[0:3, 0:3] = R_cb  # Set rotation matrix
+        self.T_cb[0:3, -1] = t_cb  # Set translation
+        T_bc = np.linalg.inv(self.T_cb)  # Get inverse
+
+        # Extract view matrix from transformation (column major format), and return
+        return T_bc.T.flatten()
     
     def get_camera_frame(self):
-        height = 480
-        width = 640
-        
-        link_state = p.getLinkState(self.physicsClientId, self.camera_link_id)
-        camera_eye = list(link_state[0])
-        camera_target = camera_eye
-        camera_target[0] -= 5
-        # camera_euler = p.getEulerFromQuaternion(link_state[1])
-        # print(camera_position, camera_euler)
-        
-        # ypr = R.from_quat(cameraEuler)
+        view_matrix = self.get_view_matrix()                                      
+        width, height, rgbaPixels, depthPixels, segMask = p.getCameraImage(self.width, self.height, 
+                                                                           view_matrix, self.projection_matrix, 
+                                                                           renderer=p.ER_BULLET_HARDWARE_OPENGL, 
+                                                                           physicsClientId=self.physicsClientId)
 
-        # cameraQuatonian = link_state[1]
-        # print(cameraQuatonian)
-        
-        # view_matrix = p.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=camera_position,
-        #                                                   distance=-0.1,
-        #                                                   yaw=camera_euler[0],
-        #                                                   pitch=camera_euler[1],
-        #                                                   roll=camera_euler[2],
-        #                                                   upAxisIndex=1)
-
-        # view_matrix = p.computeViewMatrix([0, 0, 0], [0, 1, 0], [0, 1, 0], physicsClientId=self.physicsClientId)
-        # print(view_matrix)
-
-        
-        t = list(link_state[0])
-        t[0] -= 0.1
-        t_cb = np.array(t).T
-        # print(t_cb)
-        R_cb = R.from_quat(link_state[1]).as_matrix()
-        T_cb = np.array([[0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 1.]])
-        T_cb[0:3, 0:3] = R_cb  # Set rotation matrix
-        T_cb[0:3, -1] = t_cb  # Set translation
-        print(T_cb)
-        T_bc = np.linalg.inv(T_cb)  # Get inverse
-
-        # Extract view matrix
-        view_matrix = list(T_bc.T.flatten())
-        # print(view_matrix)
-        
-        projection_matrix = p.computeProjectionMatrixFOV(fov=90, aspect=width/height, nearVal=0.1, farVal=100)
-                                                
-        width, height, rgbaPixels, depthPixels, segMask = p.getCameraImage(width, height, view_matrix, projection_matrix, renderer=p.ER_BULLET_HARDWARE_OPENGL, physicsClientId=self.physicsClientId)
-        # img_array = np.reshape(rgbaPixels, (height, width, 4))
-        # img_encoded = cv2.imencode(".jpg", img_array)
-        
         return rgbaPixels
