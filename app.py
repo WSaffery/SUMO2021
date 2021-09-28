@@ -17,8 +17,8 @@ from uuv import UUV
 
 JOINT_NAMES = ["bravo_axis_a", "bravo_axis_b", "bravo_axis_c", "bravo_axis_d", "bravo_axis_e", "bravo_axis_f", "bravo_axis_g"]
 
-SHOW_JAW_PROJECTION = 0.1
-HIDE_JAW_PROJECTION = 0.001
+HIDE_JAW_PROJECTION = 0.1
+SHOW_JAW_PROJECTION = 0.001
 
 
 class App:
@@ -30,12 +30,15 @@ class App:
     T_cb = np.array([[0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 1.]])
 
     win_time = None
+    debug = False
 
     def __init__(self):
         parser = self.init_argparse()
         args = parser.parse_args()
         if not args.round:
             raise argparse.ArgumentError(args.round, "Round argument (-r/--round) not provided.")
+
+        self.debug = bool(args.debug)
 
         self.round = args.round
 
@@ -80,7 +83,31 @@ class App:
 
             if name == 'end_effector_joint':
                 self.end_effector_link = index
+
+
+        if self.debug:
+            p.addUserDebugLine([0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id, parentLinkIndex=self.camera_link_id)
+            p.addUserDebugLine([0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                               parentLinkIndex=self.camera_link_id)
+            p.addUserDebugLine([0, 0, 0], [00, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                               parentLinkIndex=self.camera_link_id)
+
+            p.addUserDebugLine([0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                               parentLinkIndex=self.end_effector_link)
+            p.addUserDebugLine([0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                               parentLinkIndex=self.end_effector_link)
+            p.addUserDebugLine([0, 0, 0], [00, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                               parentLinkIndex=self.end_effector_link)
+
+            p.addUserDebugLine([0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.uuv.id,
+                               parentLinkIndex=0)
+            p.addUserDebugLine([0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.uuv.id,
+                               parentLinkIndex=0)
+            p.addUserDebugLine([0, 0, 0], [00, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.uuv.id,
+                               parentLinkIndex=0)
         return
+
+
     
     def init_argparse(self) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
@@ -88,6 +115,8 @@ class App:
             description="BLUEPRINT LAB SUMO HACKATHON CHALLENGE 2021"
         )
         parser.add_argument("-r", "--round", choices=['1', '2', '3'])
+
+        parser.add_argument("-d", "--debug", default=False)
         return parser
 
     def run(self):
