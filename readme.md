@@ -30,3 +30,6 @@ The lowest score wins.
 ## RUNNING THE SIMULATION
 1. Ensure your virtual environment is activated (you've either run **setup.ps1** in the same terminal session, or you've activated it yourself with `.\env\Scripts\activate`).
 2. Run `python main.py` to start the simulation.
+
+## RECOMMENDED READING
+- [**Robotics, Vision and Control**. *Fundamental algorithms in MATLAB: Second Edition*](https://petercorke.com/rvc/home/)
