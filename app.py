@@ -1,16 +1,21 @@
 import math
-from typing import Dict
-from user import User
-from uuv import UUV
-import pybullet as p
-import pybullet_data
 import time
 import cv2
 import numpy as np
 
+import pybullet as p
+import pybullet_data
+
+from typing import Dict
+
 from scipy.spatial.transform import Rotation as R
 
+from user import User
+from uuv import UUV
+
+
 JOINT_NAMES = ["bravo_axis_a", "bravo_axis_b", "bravo_axis_c", "bravo_axis_d", "bravo_axis_e", "bravo_axis_f", "bravo_axis_g"]
+
 
 class App:
     height = 480
@@ -61,6 +66,8 @@ class App:
         return
 
     def run(self):
+        start_time = time.time()  # Start time in seconds 
+        
         while True:
             self.uuv.run()
             p.stepSimulation()
@@ -74,8 +81,15 @@ class App:
                 targetPosition=new_pose[id]) 
                 for id in JOINT_NAMES]
 
+            time_remaining = 5.0 - (time.time() - start_time)
+            if time_remaining > 0.0:
+                cv2.putText(camera_img, f'Time remaining: {round(time_remaining, 2)}', (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+            else:
+                cv2.putText(camera_img, f'Time remaining: {round(time_remaining, 2)}', (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+            
             # cv2.imshow("View", camera_img)
             # cv2.waitKey(1)
+            
             time.sleep(1./240.)
         return
 
