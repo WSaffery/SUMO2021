@@ -17,12 +17,15 @@ from uuv import UUV
 
 JOINT_NAMES = ["bravo_axis_a", "bravo_axis_b", "bravo_axis_c", "bravo_axis_d", "bravo_axis_e", "bravo_axis_f", "bravo_axis_g"]
 
+SHOW_JAW_PROJECTION = 0.1
+HIDE_JAW_PROJECTION = 0.001
+
 
 class App:
     height = 480
     width = 640
     
-    projection_matrix = p.computeProjectionMatrixFOV(fov=100, aspect=width/height, nearVal=0.1, farVal=100)
+    projection_matrix = p.computeProjectionMatrixFOV(fov=100, aspect=width/height, nearVal=SHOW_JAW_PROJECTION, farVal=3.5)
     
     T_cb = np.array([[0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 1.]])
     
@@ -35,11 +38,14 @@ class App:
         self.round = args.round
 
         print("NUMPY enabled:", p.isNumpyEnabled())
+        
         self.physicsClientId = p.connect(p.GUI)
 
-        # Disable additional visualisers 
-        p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
-        p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
+        # Disable additional visualiser controls 
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_TINY_RENDERER, 1)
 
         # Set real time simulation
         p.setRealTimeSimulation(1)
@@ -92,22 +98,21 @@ class App:
 
             camera_img = self.get_camera_frame()
             global_poses = self.get_global_poses_dict()
+            
+            time_remaining = 59.0 - (time.time() - start_time)
+            text = f'Round: {self.round}    Time remaining: {round(time_remaining, 2)}'
+            
+            if time_remaining > 0.0:
+                cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2, cv2.LINE_AA)
+            else:
+                cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+            
             new_pose = self.user.run(camera_img, global_poses, self.calcIK)
             [p.setJointMotorControl2(self.bravo_id, 
                 jointIndex=self.joint_indices[id], 
                 controlMode=p.POSITION_CONTROL,
                 targetPosition=new_pose[id]) 
                 for id in JOINT_NAMES]
-
-            time_remaining = 59.0 - (time.time() - start_time)
-            text = f'Round: {self.round}    Time remaining: {round(time_remaining, 2)}'
-            if time_remaining > 0.0:
-                cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
-            else:
-                cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
-            
-            # cv2.imshow("View", camera_img)
-            # cv2.waitKey(1)
             
             time.sleep(1./240.)
         return
@@ -159,7 +164,7 @@ class App:
         view_matrix = self.get_view_matrix()                                      
         width, height, rgbaPixels, depthPixels, segMask = p.getCameraImage(self.width, self.height, 
                                                                            view_matrix, self.projection_matrix, 
-                                                                           renderer=p.ER_BULLET_HARDWARE_OPENGL, 
-                                                                           physicsClientId=self.physicsClientId)
+                                                                           renderer=p.ER_BULLET_HARDWARE_OPENGL)
         rgbaPixels = cv2.cvtColor(rgbaPixels, cv2.COLOR_BGR2RGB)
+        
         return rgbaPixels
