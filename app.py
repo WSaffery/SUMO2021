@@ -17,7 +17,7 @@ class App:
     height = 1080
     width = 1920
     
-    projection_matrix = p.computeProjectionMatrixFOV(fov=100, aspect=width/height, nearVal=0.1, farVal=100)
+    projection_matrix = p.computeProjectionMatrixFOV(fov=100, aspect=width/height, nearVal=0.001, farVal=100)
     
     T_cb = np.array([[0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 1.]])
     
@@ -46,7 +46,7 @@ class App:
         self.joint_indices = {str(name): id for id, name in joint_info if str(name) in JOINT_NAMES}
 
         default_positions = {
-            "bravo_axis_a": 0,
+            "bravo_axis_a": 0.05,
             "bravo_axis_b": 0,
             "bravo_axis_c": math.pi * 0.5,
             "bravo_axis_d": math.pi * 0,
@@ -88,8 +88,10 @@ class App:
                 jointIndex=self.joint_indices[id], 
                 controlMode=p.POSITION_CONTROL,
                 targetPosition=new_pose[id],
-                 maxVelocity=0.7)
+                maxVelocity=0.7)
                 for id in JOINT_NAMES]
+
+            self.update_jaws(new_pose["bravo_axis_a"])
             if self.is_win():
                 pass
             cv2.imshow("View", camera_img)
@@ -168,3 +170,20 @@ class App:
                                                                            physicsClientId=self.physicsClientId)
 
         return rgbaPixels
+
+    def update_jaws(self, jaw_pos):
+        jaw_angle = jaw_pos * 18
+
+        joint_1 = 22
+        joint_2 = 23
+
+        p.setJointMotorControl2(self.bravo_id,
+                                jointIndex=joint_1,
+                                controlMode=p.POSITION_CONTROL,
+                                targetPosition=jaw_angle,
+                                maxVelocity=0.7)
+        p.setJointMotorControl2(self.bravo_id,
+                                jointIndex=joint_2,
+                                controlMode=p.POSITION_CONTROL,
+                                targetPosition=jaw_angle,
+                                maxVelocity=0.7)

@@ -8,7 +8,7 @@ import numpy as np
 class User:
     def __init__(self) -> None:
         self.pose = {
-            "bravo_axis_a": 0,
+            "bravo_axis_a": 0.05,
             "bravo_axis_b": 0,
             "bravo_axis_c": math.pi * 0.5,
             "bravo_axis_d": math.pi * 0,
