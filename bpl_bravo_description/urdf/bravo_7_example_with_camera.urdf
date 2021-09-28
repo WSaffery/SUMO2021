@@ -45,7 +45,7 @@
     <origin rpy="0 0 3.14159" xyz="0.0665 0 0.08"/>
     <axis xyz="0 0 -1"/>
     <child link="bravo_1019_end_link"/>
-    <limit effort="0" lower="0.0" upper="6.3" velocity="0"/>
+    <limit effort="0" lower="0.0" upper="6.3" velocity="0.01"/>
   </joint>
   <link name="bravo_1019_end_link">
     <visual>
@@ -85,7 +85,7 @@
     <origin rpy="0 0 0" xyz="0.046 0 0.0642"/>
     <axis xyz="0 -1 0"/>
     <child link="bravo_1013_joint_link"/>
-    <limit effort="0" lower="0.0" upper="3.2" velocity="0"/>
+    <limit effort="0" lower="0.0" upper="3.2" velocity="0.01"/>
   </joint>
   <link name="bravo_1013_joint_link">
     <visual>
@@ -137,7 +137,7 @@
     <origin rpy="0 0 0" xyz="0.042 0 0.0578"/>
     <axis xyz="0 -1 0"/>
     <child link="bravo_1026_0_joint_link"/>
-    <limit effort="0" lower="0.0" upper="3.2" velocity="0"/>
+    <limit effort="0" lower="0.0" upper="3.2" velocity="0.01"/>
   </joint>
   <link name="bravo_1026_0_joint_link">
     <visual>
@@ -224,7 +224,7 @@
     <origin rpy="0 0 0" xyz="0.042 0 0.0578"/>
     <axis xyz="0 -1 0"/>
     <child link="bravo_1023_0_joint_link"/>
-    <limit effort="0" lower="0.0" upper="3.2" velocity="0"/>
+    <limit effort="0" lower="0.0" upper="3.2" velocity="0.01"/>
   </joint>
   <link name="bravo_1023_0_joint_link">
     <visual>
@@ -480,11 +480,13 @@
                 <cylinder radius="0.001" length="0.01"/>
             </geometry>
             <origin xyz="=0 0 -0.05" rpy="0 0 0"/>
-            <material name="bravo_black"/>
+      <material name="e">
+        <color rgba="0 0 0 0"/>
+      </material>
         </visual>
         <collision>
             <geometry>
-                <cylinder radius="0.001" length="0.01"/>
+                <cylinder radius="0.0001" length="0.0001"/>
             </geometry>
             <origin xyz="=0 0 -0.05" rpy="0 0 0"/>
         </collision>

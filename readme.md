@@ -4,7 +4,7 @@
 Design a computer vision solution to autonomously grab a known item of interest using the Reach Bravo 7 manipulator.
 The known item is an autonomous underwater vehicle (AUV) that must be secured in order to lift it out of the water. 
 The Reach Bravo 7 has been deployed at the surface of the water. It is fitted with a camera fixed to the wrist.
-The camera is the input to your system. It must detect the April tag secured to the AUV and use this to grab the hook located next to it. 
+The camera is the input to your system. It must detect the April tag secured to the AUV and use this to grab the hook located next to it.
 The output to your system is the set of joint positions for the manipulator. 
 You must perform analysis of the wrist camera stream to locate and grab the AUV's hook.
 
@@ -29,7 +29,7 @@ The lowest score wins.
 
 ## RUNNING THE SIMULATION
 1. Ensure your virtual environment is activated (you've either run **setup.ps1** in the same terminal session, or you've activated it yourself with `.\env\Scripts\activate`).
-2. Run `python main.py` to start the simulation.
+2. Run `python main.py --round 1` to start the simulation. The *round* argument can be 1, 2 or 3.
 
 ## RECOMMENDED READING
 - [**Robotics, Vision and Control**. *Fundamental algorithms in MATLAB: Second Edition*](https://petercorke.com/rvc/home/)

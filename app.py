@@ -7,20 +7,26 @@ import pybullet_data
 import time
 import cv2
 import numpy as np
+import argparse
 
 from scipy.spatial.transform import Rotation as R
 
 JOINT_NAMES = ["bravo_axis_a", "bravo_axis_b", "bravo_axis_c", "bravo_axis_d", "bravo_axis_e", "bravo_axis_f", "bravo_axis_g"]
 
 class App:
-    height = 480
-    width = 640
+    height = 1080
+    width = 1920
     
     projection_matrix = p.computeProjectionMatrixFOV(fov=100, aspect=width/height, nearVal=0.1, farVal=100)
     
     T_cb = np.array([[0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 1.]])
     
     def __init__(self):
+        parser = self.init_argparse()
+        args = parser.parse_args()
+        if not args.round:
+            raise argparse.ArgumentError(args.round, "Round argument (-r/--round) not provided.")
+
         print("NUMPY enabled:", p.isNumpyEnabled())
         self.physicsClientId = p.connect(p.GUI)
 
@@ -42,15 +48,16 @@ class App:
         default_positions = {
             "bravo_axis_a": 0,
             "bravo_axis_b": 0,
-            "bravo_axis_c": math.pi * 0.,
-            "bravo_axis_d": math.pi,
-            "bravo_axis_e": math.pi * 0.0,
-            "bravo_axis_f": math.pi * 0.5,
-            "bravo_axis_g": math.pi * 0.5
+            "bravo_axis_c": math.pi * 0.5,
+            "bravo_axis_d": math.pi * 0,
+            "bravo_axis_e": math.pi * 0.75,
+            "bravo_axis_f": math.pi * 0.9,
+            "bravo_axis_g": math.pi
         }
         [p.resetJointState(self.bravo_id, jointIndex=self.joint_indices[id], targetValue=default_positions[id]) for id in JOINT_NAMES]
-        self.uuv: UUV = UUV()
+        self.uuv: UUV = UUV(int(args.round))
         self.user: User = User()
+        self.ticks = 0
 
         for index, name in joint_info:
             if name == 'camera_end_joint':
@@ -59,25 +66,53 @@ class App:
             if name == 'end_effector_joint':
                 self.end_effector_link = index
         return
+    
+    def init_argparse(self) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            usage="%(prog)s",
+            description="BLUEPRINT LAB SUMO HACKATHON CHALLENGE 2021"
+        )
+        parser.add_argument("-r", "--round", choices=['1', '2', '3'])
+        return parser
 
     def run(self):
         while True:
-            self.uuv.run()
+            self.uuv.run(self.ticks)
             p.stepSimulation()
-            
+            self.ticks += 1
+
             camera_img = self.get_camera_frame()
             global_poses = self.get_global_poses_dict()
             new_pose = self.user.run(camera_img, global_poses, self.calcIK)
             [p.setJointMotorControl2(self.bravo_id, 
                 jointIndex=self.joint_indices[id], 
                 controlMode=p.POSITION_CONTROL,
-                targetPosition=new_pose[id]) 
+                targetPosition=new_pose[id],
+                 maxVelocity=0.7)
                 for id in JOINT_NAMES]
-
-            # cv2.imshow("View", camera_img)
-            # cv2.waitKey(1)
+            if self.is_win():
+                pass
+            cv2.imshow("View", camera_img)
+            cv2.waitKey(1)
             time.sleep(1./240.)
+
         return
+
+    def is_win(self):
+
+        end_effector_pos = self.get_global_poses_dict()['end_effector_joint'][0]
+
+        win_pos = p.getLinkState(self.uuv.id, 0)[4]
+
+        dist = np.linalg.norm(np.array(end_effector_pos) - np.array(win_pos))
+
+        print(dist)
+
+        if dist < 0.05:
+            print("WINNER")
+            return True
+        return False
+        pass
 
     def calcIK(self, pos: np.ndarray, orient: np.ndarray = None) -> Dict[str, float]:
         jointPositions = p.calculateInverseKinematics(
@@ -94,12 +129,14 @@ class App:
             self.bravo_id, 
             self.end_effector_link, 
             computeForwardKinematics=True
-        )[4]
+        )
+        end_effector_pos = [end_effector_pos[4], end_effector_pos[5]]
         camera_pos = p.getLinkState(
             self.bravo_id, 
             self.camera_link_id,
             computeForwardKinematics=True
-        )[4]
+        )
+        camera_pos = [camera_pos[4],camera_pos[5]]
 
         return {
                 'camera_end_joint': camera_pos,
