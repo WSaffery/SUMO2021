@@ -50,28 +50,28 @@ class App:
         p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
         p.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 0)
         p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
-        p.configureDebugVisualizer(p.COV_ENABLE_TINY_RENDERER, 1)
+        p.configureDebugVisualizer(p.COV_ENABLE_TINY_RENDERER, 0)
 
         # Set real time simulation
         p.setRealTimeSimulation(1)
 
         p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
 
-        self.bravo_id = p.loadURDF("bpl_bravo_description/urdf/bravo_7_example_with_camera.urdf",
-                                   useFixedBase=True)
+        self.bravo_id = p.loadURDF("bpl_bravo_description/urdf/bravo_7_example_with_camera.urdf", useFixedBase=True)
         joint_info = [p.getJointInfo(self.bravo_id, i)[0:2] for i in range(p.getNumJoints(self.bravo_id))]
         joint_info = [(id, name.decode("utf-8")) for id, name in joint_info]
         self.joint_indices = {str(name): id for id, name in joint_info if str(name) in JOINT_NAMES}
 
         default_positions = {
-            "bravo_axis_a": 0.05,
-            "bravo_axis_b": 0,
-            "bravo_axis_c": math.pi * 0.5,
-            "bravo_axis_d": math.pi * 0,
-            "bravo_axis_e": math.pi * 0.75,
-            "bravo_axis_f": math.pi * 0.9,
-            "bravo_axis_g": math.pi
-        }
+                                "bravo_axis_a": 0.05,
+                                "bravo_axis_b": 0,
+                                "bravo_axis_c": math.pi * 0.5,
+                                "bravo_axis_d": math.pi * 0,
+                                "bravo_axis_e": math.pi * 0.75,
+                                "bravo_axis_f": math.pi * 0.9,
+                                "bravo_axis_g": math.pi
+                            }
+        
         [p.resetJointState(self.bravo_id, jointIndex=self.joint_indices[id], targetValue=default_positions[id]) for id in JOINT_NAMES]
         self.uuv: UUV = UUV(int(self.round))
         self.user: User = User()
@@ -84,62 +84,69 @@ class App:
             if name == 'end_effector_joint':
                 self.end_effector_link = index
 
-
         if self.debug:
-            p.addUserDebugLine([0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id, parentLinkIndex=self.camera_link_id)
-            p.addUserDebugLine([0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
-                               parentLinkIndex=self.camera_link_id)
-            p.addUserDebugLine([0, 0, 0], [00, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
-                               parentLinkIndex=self.camera_link_id)
-
-            p.addUserDebugLine([0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
-                               parentLinkIndex=self.end_effector_link)
-            p.addUserDebugLine([0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
-                               parentLinkIndex=self.end_effector_link)
-            p.addUserDebugLine([0, 0, 0], [00, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
-                               parentLinkIndex=self.end_effector_link)
-
-            p.addUserDebugLine([0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.uuv.id,
-                               parentLinkIndex=0)
-            p.addUserDebugLine([0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.uuv.id,
-                               parentLinkIndex=0)
-            p.addUserDebugLine([0, 0, 0], [00, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.uuv.id,
-                               parentLinkIndex=0)
+            self.add_debug_lines()
+        
         return
 
+    def add_debug_lines(self):
+        p.addUserDebugLine([0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id, 
+                            parentLinkIndex=self.camera_link_id)
+        p.addUserDebugLine([0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                            parentLinkIndex=self.camera_link_id)
+        p.addUserDebugLine([0, 0, 0], [00, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                            parentLinkIndex=self.camera_link_id)
 
+        p.addUserDebugLine([0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                            parentLinkIndex=self.end_effector_link)
+        p.addUserDebugLine([0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                            parentLinkIndex=self.end_effector_link)
+        p.addUserDebugLine([0, 0, 0], [00, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                            parentLinkIndex=self.end_effector_link)
+
+        p.addUserDebugLine([0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.uuv.id,
+                            parentLinkIndex=0)
+        p.addUserDebugLine([0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.uuv.id,
+                            parentLinkIndex=0)
+        p.addUserDebugLine([0, 0, 0], [00, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.uuv.id,
+                            parentLinkIndex=0)
     
     def init_argparse(self) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
             usage="%(prog)s",
             description="BLUEPRINT LAB SUMO HACKATHON CHALLENGE 2021"
         )
+        
         parser.add_argument("-r", "--round", choices=['1', '2', '3'])
-
         parser.add_argument("-d", "--debug", default=False)
+        
         return parser
 
     def run(self):
         start_time = time.time()  # Start time in seconds
 
-        while True:
+        while True:           
             self.uuv.run(self.ticks)
             p.stepSimulation()
+            
             self.ticks += 1
 
             camera_img = self.get_camera_frame()
             global_poses = self.get_global_poses_dict()
 
             time_remaining = 59.0 - (time.time() - start_time)
-            text = f'Round: {self.round}    Time remaining: {round(time_remaining, 2)}'
+            text = f'Round: {self.round}    Time remaining: {time_remaining:.2f}'
+            
             if self.is_win() or self.win_time is not None:
                 if self.win_time is None:
-                    self.win_time = time_remaining
-                text = f'Round: {self.round}    Time remaining: {round(self.win_time, 2)}  GOAL ACHIEVED!!!!'
+                    self.win_time = time_remaining    
+                
+                text = f'Round: {self.round}  Time remaining: {self.win_time:.2f}  GOAL ACHIEVED!!!!'
+            
             if time_remaining > 0.0:
-                cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2, cv2.LINE_AA)
+                cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2, cv2.LINE_AA)
             else:
-                cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2, cv2.LINE_AA)
 
             new_pose = self.user.run(camera_img, global_poses, self.calcIK)
             [p.setJointMotorControl2(self.bravo_id, 
@@ -151,32 +158,17 @@ class App:
 
             self.update_jaws(new_pose["bravo_axis_a"])
 
-
-            # cv2.imshow("View", camera_img)
-            # cv2.waitKey(1)
-
-            # dt = time.time() - last_time
-
-            # time_to_sleep = max(0., 1./TIMESTEP - dt)
-            # time.sleep(1./TIMESTEP.)
-
         return
 
     def is_win(self):
-
         end_effector_pos = self.get_global_poses_dict()['end_effector_joint'][0]
-
         win_pos = p.getLinkState(self.uuv.id, 0)[4]
-
         dist = np.linalg.norm(np.array(end_effector_pos) - np.array(win_pos))
-
-        # print(dist)
 
         if dist < 0.05:
             print("WINNER")
             return True
         return False
-        pass
 
     def calcIK(self, pos: np.ndarray, orient: np.ndarray = None) -> Dict[str, float]:
         jointPositions = p.calculateInverseKinematics(
