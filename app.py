@@ -12,7 +12,7 @@ from scipy.spatial.transform import Rotation as R
 
 JOINT_NAMES = ["bravo_axis_a", "bravo_axis_b", "bravo_axis_c", "bravo_axis_d", "bravo_axis_e", "bravo_axis_f", "bravo_axis_g"]
 
-
+camera_end_joint = 0
 class App:
     def __init__(self):
         print("NUMPY enabled:", p.isNumpyEnabled())
@@ -35,12 +35,6 @@ class App:
         joint_info = [(id, name.decode("utf-8")) for id, name in joint_info]
         self.joint_indices = {str(name): id for id, name in joint_info if str(name) in JOINT_NAMES}
 
-        self.camera_joint_index = 0
-        for id, name in joint_info:
-            if name == "camera_end_joint":
-                print(id, name)
-                self.camera_joint_index = id
-
         default_positions = {
             "bravo_axis_a": 0,
             "bravo_axis_b": 0,
@@ -53,9 +47,30 @@ class App:
         [p.resetJointState(self.bravo_id, jointIndex=self.joint_indices[id], targetValue=default_positions[id]) for id in JOINT_NAMES]
         self.uuv: UUV = UUV()
         self.user: User = User()
+
+        for index, name in joint_info:
+            if name == 'camera_end_joint':
+                self.camera_link_id = index
+
+            if name == 'end_effector_joint':
+                self.end_effector_link = index
         return
 
     def run(self):
+
+        p.addUserDebugLine([0.0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.camera_link_id)
+        p.addUserDebugLine([0.0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.camera_link_id)
+        p.addUserDebugLine([0.0, 0, 0], [0, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.camera_link_id)
+
+        p.addUserDebugLine([0.0, 0, 0], [0.1, 0, 0], [1, 0, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.end_effector_link)
+        p.addUserDebugLine([0.0, 0, 0], [0, 0.1, 0], [0, 1, 0], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.end_effector_link)
+        p.addUserDebugLine([0.0, 0, 0], [0, 0, 0.1], [0, 0, 1], lineWidth=5, parentObjectUniqueId=self.bravo_id,
+                           parentLinkIndex=self.end_effector_link)
         while True:
             self.uuv.run()
             p.stepSimulation()
@@ -83,9 +98,8 @@ class App:
         height = 480
         width = 640
         
-        link_state = p.getLinkState(self.physicsClientId, self.camera_joint_index)
+        link_state = p.getLinkState(self.physicsClientId, self.camera_end_joint)
         camera_position = list(link_state[0])
-        camera_position
         camera_euler = R.from_euler("xyz", p.getEulerFromQuaternion(link_state[1])).as_euler("zyx")
         print(camera_position, camera_euler)
         
