@@ -2,17 +2,72 @@
     <material name="yellow">
         <color rgba="0.6 0.3 0 1"/>
     </material>
+
+    <material name="white">
+            <color rgba="1 1 1 1"/>
+          </material>
+     <material name="steel">
+        <color rgba="0.5 0.5 0.5 1"/>
+  </material>
+  <material name="black">
+    <color rgba="0 0 0 1"/>
+  </material>
+
     <link name="origin">
         <visual>
             <geometry>
                 <mesh filename="package://uuv/UUV v1.stl"/>
             </geometry>
             <material name="yellow"/>
+            <origin xyz="0.2 -0.025 -0.40" rpy="0 0 0"/>
         </visual>
-        <collision>
-            <geometry>
-                <mesh filename="package://uuv/UUV v1.stl"/>
-            </geometry>
-        </collision>
     </link>
+
+    <joint name="hook_joint" type="fixed">
+        <parent link="origin"/>
+        <child link="origin_white"/>
+<!--        <origin xyz="0 0 0" rpy="0 0 0"/>-->
+    </joint>
+
+    <link name="origin_white">
+        <visual>
+            <geometry>
+                <mesh filename="hook_white.stl"/>
+            </geometry>
+             <material name="white"/>
+            <origin xyz="0 0 -0.05" rpy="0 0 0"/>
+        </visual>
+    </link>
+
+    <link name="origin_black">
+
+        <visual>
+            <geometry>
+                <mesh filename="hook_black.stl"/>
+            </geometry>
+             <material name="black"/>
+            <origin xyz="0 0 -0.05" rpy="0 0 0"/>
+        </visual>
+    </link>
+
+    <link name="origin_steel">
+
+        <visual>
+            <geometry>
+                <mesh filename="hook_steel.stl"/>
+            </geometry>
+             <material name="steel"/>
+            <origin xyz="0 0 -0.05" rpy="0 0 0"/>
+        </visual>
+    </link>
+
+    <joint name="origin_1" type="fixed">
+        <parent link="origin_white"/>
+        <child link="origin_black"/>
+    </joint>
+
+    <joint name="origin_2" type="fixed">
+        <parent link="origin_black"/>
+        <child link="origin_steel"/>
+    </joint>
 </robot>

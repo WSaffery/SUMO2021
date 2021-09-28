@@ -22,13 +22,15 @@ HIDE_JAW_PROJECTION = 0.001
 
 
 class App:
-    height = 480
-    width = 640
+    height = 1080
+    width = 1920
     
     projection_matrix = p.computeProjectionMatrixFOV(fov=100, aspect=width/height, nearVal=SHOW_JAW_PROJECTION, farVal=3.5)
     
     T_cb = np.array([[0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 1.]])
-    
+
+    win_time = None
+
     def __init__(self):
         parser = self.init_argparse()
         args = parser.parse_args()
@@ -38,10 +40,10 @@ class App:
         self.round = args.round
 
         print("NUMPY enabled:", p.isNumpyEnabled())
-        
+
         self.physicsClientId = p.connect(p.GUI)
 
-        # Disable additional visualiser controls 
+        # Disable additional visualiser controls
         p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
         p.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 0)
         p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
@@ -59,13 +61,13 @@ class App:
         self.joint_indices = {str(name): id for id, name in joint_info if str(name) in JOINT_NAMES}
 
         default_positions = {
-            "bravo_axis_a": 0,
+            "bravo_axis_a": 0.05,
             "bravo_axis_b": 0,
-            "bravo_axis_c": math.pi * 0.,
-            "bravo_axis_d": math.pi,
-            "bravo_axis_e": math.pi * 0.0,
-            "bravo_axis_f": math.pi * 0.5,
-            "bravo_axis_g": math.pi * 0.5
+            "bravo_axis_c": math.pi * 0.5,
+            "bravo_axis_d": math.pi * 0,
+            "bravo_axis_e": math.pi * 0.75,
+            "bravo_axis_f": math.pi * 0.9,
+            "bravo_axis_g": math.pi
         }
         [p.resetJointState(self.bravo_id, jointIndex=self.joint_indices[id], targetValue=default_positions[id]) for id in JOINT_NAMES]
         self.uuv: UUV = UUV(int(self.round))
@@ -89,8 +91,8 @@ class App:
         return parser
 
     def run(self):
-        start_time = time.time()  # Start time in seconds 
-        
+        start_time = time.time()  # Start time in seconds
+
         while True:
             self.uuv.run(self.ticks)
             p.stepSimulation()
@@ -98,24 +100,50 @@ class App:
 
             camera_img = self.get_camera_frame()
             global_poses = self.get_global_poses_dict()
-            
+
             time_remaining = 59.0 - (time.time() - start_time)
             text = f'Round: {self.round}    Time remaining: {round(time_remaining, 2)}'
-            
+            if self.is_win() or self.win_time is not None:
+                if self.win_time is None:
+                    self.win_time = time_remaining
+                text = f'Round: {self.round}    Time remaining: {round(self.win_time, 2)}  GOAL ACHIEVED!!!!'
             if time_remaining > 0.0:
                 cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2, cv2.LINE_AA)
             else:
                 cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
-            
+
             new_pose = self.user.run(camera_img, global_poses, self.calcIK)
             [p.setJointMotorControl2(self.bravo_id, 
                 jointIndex=self.joint_indices[id], 
                 controlMode=p.POSITION_CONTROL,
-                targetPosition=new_pose[id]) 
+                targetPosition=new_pose[id],
+                maxVelocity=0.7)
                 for id in JOINT_NAMES]
-            
+
+            self.update_jaws(new_pose["bravo_axis_a"])
+
+
+            # cv2.imshow("View", camera_img)
+            # cv2.waitKey(1)
             time.sleep(1./240.)
+
         return
+
+    def is_win(self):
+
+        end_effector_pos = self.get_global_poses_dict()['end_effector_joint'][0]
+
+        win_pos = p.getLinkState(self.uuv.id, 0)[4]
+
+        dist = np.linalg.norm(np.array(end_effector_pos) - np.array(win_pos))
+
+        print(dist)
+
+        if dist < 0.05:
+            print("WINNER")
+            return True
+        return False
+        pass
 
     def calcIK(self, pos: np.ndarray, orient: np.ndarray = None) -> Dict[str, float]:
         jointPositions = p.calculateInverseKinematics(
@@ -132,12 +160,14 @@ class App:
             self.bravo_id, 
             self.end_effector_link, 
             computeForwardKinematics=True
-        )[4]
+        )
+        end_effector_pos = [end_effector_pos[4], end_effector_pos[5]]
         camera_pos = p.getLinkState(
             self.bravo_id, 
             self.camera_link_id,
             computeForwardKinematics=True
-        )[4]
+        )
+        camera_pos = [camera_pos[4],camera_pos[5]]
 
         return {
                 'camera_end_joint': camera_pos,
@@ -166,5 +196,22 @@ class App:
                                                                            view_matrix, self.projection_matrix, 
                                                                            renderer=p.ER_BULLET_HARDWARE_OPENGL)
         rgbaPixels = cv2.cvtColor(rgbaPixels, cv2.COLOR_BGR2RGB)
-        
+
         return rgbaPixels
+
+    def update_jaws(self, jaw_pos):
+        jaw_angle = jaw_pos * 18
+
+        joint_1 = 22
+        joint_2 = 23
+
+        p.setJointMotorControl2(self.bravo_id,
+                                jointIndex=joint_1,
+                                controlMode=p.POSITION_CONTROL,
+                                targetPosition=jaw_angle,
+                                maxVelocity=0.7)
+        p.setJointMotorControl2(self.bravo_id,
+                                jointIndex=joint_2,
+                                controlMode=p.POSITION_CONTROL,
+                                targetPosition=jaw_angle,
+                                maxVelocity=0.7)

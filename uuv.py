@@ -11,7 +11,7 @@ ORIGIN = [0, 0, 0]
 class UUV:
     id: int
     def __init__(self, roundNum) -> None:
-        init_pos = [0, 0, -0.5]
+        init_pos = [0.5, 0, -0.05]
         maxDist = 0.15
         random_pos = [2.0*maxDist*(random.random()-0.5) + init_pos[i] for i in range(2)] \
             + [init_pos[2]]
@@ -30,7 +30,7 @@ class UUV:
         maxPrdScale = 0.1
         self.prdScales = [1.0 + maxPrdScale*2.0*(random.random() -0.5) for i in range(3)]
         self.phase3 = [
-            2.0*random.random()*math.pi, 
+            2.0*random.random()*math.pi,
             2.0*random.random()*math.pi,
             math.pi
         ]
@@ -51,7 +51,7 @@ class UUV:
                 self.id,
                 linearVelocity=[0, self.maxVel2*math.sin(self.timeScale*ticks + self.phase2), 0]
             )
-        
+
         if self.round == 3:
             return p.resetBaseVelocity(
                 self.id,
@@ -60,7 +60,7 @@ class UUV:
                     for i in range(3)
                 ]
             )
-        
+
         return
 
     # def get_perturbation(self) -> List[float]:
