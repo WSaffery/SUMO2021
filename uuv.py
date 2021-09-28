@@ -32,9 +32,9 @@ class UUV:
         #                     forceObj=self.get_perturbation(),
         #                     posObj=ORIGIN,
         #                     flags=p.LINK_FRAME)
-        p.resetBaseVelocity(self.id,
-                            linearVelocity=self.get_perturbation()
-                            )
+        # p.resetBaseVelocity(self.id,
+                            # linearVelocity=self.get_perturbation()
+                            # )
         return
 
     def get_perturbation(self) -> List[float]:
