@@ -32,6 +32,8 @@ class App:
         if not args.round:
             raise argparse.ArgumentError(args.round, "Round argument (-r/--round) not provided.")
 
+        self.round = args.round
+
         print("NUMPY enabled:", p.isNumpyEnabled())
         self.physicsClientId = p.connect(p.GUI)
 
@@ -60,7 +62,7 @@ class App:
             "bravo_axis_g": math.pi * 0.5
         }
         [p.resetJointState(self.bravo_id, jointIndex=self.joint_indices[id], targetValue=default_positions[id]) for id in JOINT_NAMES]
-        self.uuv: UUV = UUV(int(args.round))
+        self.uuv: UUV = UUV(int(self.round))
         self.user: User = User()
         self.ticks = 0
 
@@ -97,11 +99,12 @@ class App:
                 targetPosition=new_pose[id]) 
                 for id in JOINT_NAMES]
 
-            time_remaining = 5.0 - (time.time() - start_time)
+            time_remaining = 59.0 - (time.time() - start_time)
+            text = f'Round: {self.round}    Time remaining: {round(time_remaining, 2)}'
             if time_remaining > 0.0:
-                cv2.putText(camera_img, f'Time remaining: {round(time_remaining, 2)}', (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+                cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
             else:
-                cv2.putText(camera_img, f'Time remaining: {round(time_remaining, 2)}', (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.putText(camera_img, text, (10, self.height-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
             
             # cv2.imshow("View", camera_img)
             # cv2.waitKey(1)
