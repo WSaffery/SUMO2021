@@ -98,18 +98,26 @@ class User:
         at_detector = Detector()
         grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         tags = at_detector.detect(grey)
+
+        # info output
+
         if tags:
-            tag = tags[0]
-            center_x, center_y = tag.center
-            print(str(tag.center))
-            print(str(tag.corners))
-            start_x = int(tag.corners[0][0])
-            start_y = int(tag.corners[0][1])
-            end_x = int(tag.corners[2][0])
-            end_y = int(tag.corners[2][1])
-            cv2.rectangle(image, (start_x, start_y), (end_x, end_y), (255, 0, 255), 3)
-            self.moveTo(global_poses, calcIK, center_x, center_y)
-            self.locking = True
+            for tag in tags:
+                if tag.tag_id:
+                    print("this tag is furthest from the manipulator base")
+                else:
+                    print("this tag is nearest to the manipulator base")
+
+                print(str(tag.center))
+                print(str(tag.corners))
+                start_x = int(tag.corners[0][0])
+                start_y = int(tag.corners[0][1])
+                end_x = int(tag.corners[2][0])
+                end_y = int(tag.corners[2][1])
+                center_x, center_y = tag.center
+                cv2.rectangle(image, (start_x, start_y), (end_x, end_y), (255, 0, 255), 3)
+                self.moveTo(global_poses, calcIK, center_x, center_y)
+                self.locking = True
         elif not self.locking:
             print("hello")
             self.pose = calcIK([0.5, 0, 0], None)
