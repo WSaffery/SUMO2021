@@ -142,7 +142,7 @@ class User:
         else:
             center = centers[0]
             id = ids[0]
-            self.target_x = center[0]-60 if id == 1 else center[0]+60
+            self.target_x = center[0]-80 if id == 1 else center[0]+80
             self.target_y = center[1]
             self.target_z = center[2]
         print(f"set targets {self.target_x=} {self.target_y=} {self.target_z=}")
@@ -177,27 +177,22 @@ class User:
         arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_APRILTAG_36h11)
         arucoParams = cv2.aruco.DetectorParameters_create()
         (corners, ids, rejected) = cv2.aruco.detectMarkers(image, arucoDict, parameters=arucoParams)
+        if ids != None:
+            ids = ids.tolist()[0]
         cv2.aruco.drawDetectedMarkers(image, corners)
         cv2.aruco.drawDetectedMarkers(image, rejected)
+        print(ids)
 
         centers = []
-        ids = []
-        if (len(corners)>=1):
-            rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[0], 0.02, matrix_coefficients, distortion_coefficients)
-            centers.append(User.toProperList(tvec))
-            ids.append(0)
-            cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
-            print("CORNER0")
-            print(rvec)
-            print(tvec)
-        if (len(corners)>=2):
-            rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[1], 0.02, matrix_coefficients, distortion_coefficients)
-            centers.append(User.toProperList(tvec))
-            ids.append(1)
-            cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
-            print("CORNER1")
-            print(rvec)
-            print(tvec)
+        if corners and ids:
+            for tag,id in zip(corners, ids):
+                rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[0], 0.02, matrix_coefficients, distortion_coefficients)
+                centers.append(User.toProperList(tvec))
+                cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
+                print(f"TAG{id}")
+                print(rvec)
+                print(tvec)
+
         print(f"{centers=} {ids=}")
         if len(centers) and len(ids):
             self.setTargets3D(centers, ids)
