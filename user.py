@@ -56,6 +56,9 @@ class User:
         elif command == "end":
             global_poses['end_effector_joint'] = args[0]
 
+    def moveTo(self, x, y):
+        pass
+
     def run(self,
             image: list,
             global_poses: Dict[str, np.ndarray],
@@ -88,6 +91,11 @@ class User:
                 print(e)
         else:
             self.oldpose = self.pose
+
+        # self.pose = calcIK(np.array([0.425, 0, 0]), None)
+        # self.pose = calcIK(np.array([0.425, 0, 0]), None)
+
+        # self.moveTo(196, 266)
 
         # THIS IS AN EXAMPLE TO SHOW YOU HOW TO MOVE THE MANIPULATOR
         # if self.pose["bravo_axis_e"] > math.pi:
