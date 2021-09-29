@@ -57,20 +57,36 @@ class User:
         elif command == "end":
             global_poses['end_effector_joint'] = args[0]
 
-    def moveTo(self, global_poses, calcIK, x, y):
-        current = global_poses['end_effector_joint'][0]
-        print(f"{current=}")
-        to_x = current[0] + ((x-320)/640)*0.1
-        to_y = current[1] + ((y-240)/480)*0.1
+
+    def flatAlgo(global_poses, x, y):
+        current_x = global_poses['end_effector_joint'][0][0]
+        current_y  = global_poses['end_effector_joint'][0][1]
+        print(f"{current_x=} {current_y=}")
+        to_x = current_x + ((x-320)/640)*0.1
+        to_y = current_y + ((y-240)/480)*0.1
         to_z = 0
         # if (to_x != 0 or to_y != 0):
         #     to_z = 0
         # else:
         #     to_z = current[2] - 0.1
-        vec3 = np.array([to_x,to_y,to_z])
+        return np.array([to_x,to_y,to_z])
+
+    def safeflatAlgo(x, y):
+        to_x = -0.1 if (x-320) < 0 else 0.1
+        to_y = -0.1 if (y-240) < 0 else 0.1
+        to_z = 0
+        return np.array([to_x,to_y,to_z])
+
+    def moveTo(self, global_poses, calcIK, x, y):
+        vec3 = User.flatAlgo(global_poses, x, y)
+        # vec3 = User.safeflatAlgo(x, y)
         print("moveTo",vec3)
         print(joints := calcIK(vec3, None))
         self.pose = joints
+
+    def safeMoveTo(self, calcIK, x, y):
+
+        pass
 
     def run(self,
             image: list,
