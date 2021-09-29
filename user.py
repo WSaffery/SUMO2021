@@ -21,7 +21,6 @@ class User:
         self.oldpose = self.pose
         self.inc = 0.1
         self.last_time = time.time()
-
         return
 
     def manual_control(self, global_poses, calcIK):
@@ -34,12 +33,22 @@ class User:
             print(f"{global_poses['end_effector_joint']=}")
             print(f"{self.pose=}")
             print(f"{self.inc=}")
-        if command == "p":
-            print(np.array(args[0:3]), np.array(args[3:7]))
+        if command == "pq":
             vec3 = np.array([float(x) for x in args[0:3]])
             ori = np.array([float(x) for x in args[3:7]])
             print(vec3, ori)
             self.pose = calcIK(vec3, ori)
+        elif command == "p":
+            vec3 = np.array([float(x) for x in args[0:3]])
+            ori = None
+            print(vec3, ori)
+            self.pose = calcIK(vec3, ori)
+        elif command == "p":
+            vec3 = np.array([float(x) for x in args[0:3]])
+            inc = args[3]
+            print(vec3, inc)
+            self.pose = calcIK(vec3, None)
+            self.inc = inc
         elif command == "inc":
             self.inc = args[0]
         elif command == "camera":
