@@ -11,6 +11,7 @@ from random import random
 SHOW_JAW_PROJECTION = 0.001
 height = 480
 width = 640
+ADJUST = 136.25
 
 print("matrix stuff")
 # computed = p.computeProjectionMatrixFOV(fov=100, aspect=width/height, nearVal=SHOW_JAW_PROJECTION, farVal=3.5)
@@ -31,6 +32,12 @@ distortion_coefficients = np.load("distortion_coefficients.npy")
 #[[ 0.02206642  0.20438685 -0.00633739 -0.00140045 -0.85132748]]
 
 print(distortion_coefficients)
+
+class Tag:
+    def __init__(self, center, rvec, id):
+        self.center = center
+        self.rvec = rvec
+        self.id = id
 
 class User:
     def __init__(self) -> None:
@@ -129,20 +136,25 @@ class User:
         to_z = current_z + z*0.1
         return np.array([to_x,to_y,to_z])
 
+    def Solvo(global_poses, x, y, z):
+        default_camera_pos = (0.4393743574619293, -0.051950227469205856, 0.4152250289916992)
+        relative_pos = (x,y,z)
+        return np.array([a+b for a,b in zip(default_camera_pos, relative_pos)])
+
     def moveTo3D(self, global_poses, calcIK, x, y, z):
-        vec3 = User.Algo(global_poses, x, y, z)
+        vec3 = User.Solvo(global_poses, x, y, z)
         print(f"moveTo vector {vec3=}")
         print(joints := calcIK(vec3, None))
         self.pose = joints
 
-    def setTargets3D(self, centers, ids):
-        if len(centers) == 2:
-            # self.target_x = centers[0][0] + centers[1][0]
-            self.target_x, self.target_y, self.target_z = [(a+b)/2 for a,b in zip(centers[0], centers[1])]
+    def setTargets3D(self, tags):
+        if len(tags) == 2:
+            self.target_x, self.target_y, self.target_z = [(a+b)/2 for a,b in zip(tags[0].center, tags[1].center)]
         else:
-            center = centers[0]
-            id = ids[0]
-            self.target_x = center[0]-80 if id == 1 else center[0]+80
+            center = tags[0].center
+            id = tags[0].id
+            # self.target_x = center[0]-ADJUST if id == 1 else center[0]+ADJUST
+            self.target_x = center[0]
             self.target_y = center[1]
             self.target_z = center[2]
         print(f"set targets {self.target_x=} {self.target_y=} {self.target_z=}")
@@ -173,29 +185,31 @@ class User:
             position (vec3) and an orientation (quaternion) and it will return a pose
             dictionary of joint angles to approximate the pose.
         """
+        print(global_poses)
+        # 'camera_end_joint': [(0.4393743574619293, -0.051950227469205856, 0.4152250289916992), (-0.0007773424149490893, -0.23344528675079346, -0.0001872739812824875, 0.9723696112632751)],
 
         arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_APRILTAG_36h11)
         arucoParams = cv2.aruco.DetectorParameters_create()
         (corners, ids, rejected) = cv2.aruco.detectMarkers(image, arucoDict, parameters=arucoParams)
-        if ids != None:
+        if not ids is None:
             ids = ids.tolist()[0]
         cv2.aruco.drawDetectedMarkers(image, corners)
         cv2.aruco.drawDetectedMarkers(image, rejected)
         print(ids)
 
-        centers = []
-        if corners and ids:
+        tags = []
+        if corners and not ids is None:
             for tag,id in zip(corners, ids):
                 rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[0], 0.02, matrix_coefficients, distortion_coefficients)
-                centers.append(User.toProperList(tvec))
+                tags.append(Tag(User.toProperList(tvec), rvec, id))
                 cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
                 print(f"TAG{id}")
                 print(rvec)
                 print(tvec)
 
-        print(f"{centers=} {ids=}")
-        if len(centers) and len(ids):
-            self.setTargets3D(centers, ids)
+        print(f"{tags=}")
+        if tags:
+            self.setTargets3D(tags)
             self.moveTo3D(global_poses, calcIK, self.target_x, self.target_y, self.target_z)
             self.locking = True
         elif not self.locking:
@@ -210,9 +224,9 @@ class User:
             if (self.moving == 0):
                 self.moving = 5
                 self.roam = self.default
-        elif self.target_x != None and self.target_x != None:
+        elif self.target_x != None and self.target_x != None and self.target_z != None:
             print(f"continue to {self.target_x=} {self.target_y=}  {self.target_z=}")
-            # self.moveTo(global_poses, calcIK, self.target_x, self.target_y, self.target_z)
+            self.moveTo3D(global_poses, calcIK, self.target_x, self.target_y, self.target_z)
             self.moving += 1
             if (self.moving > 5):
                 self.locking = False
