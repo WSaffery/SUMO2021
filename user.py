@@ -21,6 +21,7 @@ class User:
         self.oldpose = self.pose
         self.inc = 0.1
         self.last_time = time.time()
+        self.locking = False
         return
 
     def manual_control(self, global_poses, calcIK):
@@ -56,8 +57,20 @@ class User:
         elif command == "end":
             global_poses['end_effector_joint'] = args[0]
 
-    def moveTo(self, x, y):
-        pass
+    def moveTo(self, global_poses, calcIK, x, y):
+        current = global_poses['end_effector_joint'][0]
+        print(f"{current=}")
+        to_x = current[0] + ((x-320)/640)*0.1
+        to_y = current[1] + ((y-240)/480)*0.1
+        to_z = 0
+        # if (to_x != 0 or to_y != 0):
+        #     to_z = 0
+        # else:
+        #     to_z = current[2] - 0.1
+        vec3 = np.array([to_x,to_y,to_z])
+        print("moveTo",vec3)
+        print(joints := calcIK(vec3, None))
+        self.pose = joints
 
     def run(self,
             image: list,
@@ -87,6 +100,7 @@ class User:
         tags = at_detector.detect(grey)
         if tags:
             tag = tags[0]
+            center_x, center_y = tag.center
             print(str(tag.center))
             print(str(tag.corners))
             start_x = int(tag.corners[0][0])
@@ -94,16 +108,24 @@ class User:
             end_x = int(tag.corners[2][0])
             end_y = int(tag.corners[2][1])
             cv2.rectangle(image, (start_x, start_y), (end_x, end_y), (255, 0, 255), 3)
+            self.moveTo(global_poses, calcIK, center_x, center_y)
+            self.locking = True
+        elif not self.locking:
+            print("hello")
+            self.pose = calcIK([0.5, 0, 0], None)
+        else:
+            self.locking = False
 
         cv2.imshow("View", image)
         cv2.waitKey(1)
-        if self.oldpose == self.pose:
-            try:
-                self.manual_control(global_poses, calcIK)
-            except Exception as e:
-                print(e)
-        else:
-            self.oldpose = self.pose
+
+        # if self.oldpose == self.pose:
+        #     try:
+        #         self.manual_control(global_poses, calcIK)
+        #     except Exception as e:
+        #         print(e)
+        # else:
+        #     self.oldpose = self.pose
 
         # self.pose = calcIK(np.array([0.425, 0, 0]), None)
         # self.pose = calcIK(np.array([0.425, 0, 0]), None)
