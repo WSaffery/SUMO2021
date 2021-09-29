@@ -97,39 +97,6 @@ class User:
             global_poses['end_effector_joint'] = args[0]
 
 
-    def flatAlgo(global_poses, x, y):
-        current = global_poses['end_effector_joint'][0]
-        current_x, current_y, current_z = current
-        print(f"current {current_x=} {current_y=} {current_z=}")
-        to_x = current_x + ((x-320)/640)*0.1
-        to_y = current_y + ((y-240)/480)*0.1
-        if (to_x != 0 or to_y != 0):
-            to_z = 0
-        else:
-            to_z = current_z - 0.1
-        return np.array([to_x,to_y,to_z])
-
-    def moveTo(self, global_poses, calcIK, x, y):
-        vec3 = User.flatAlgo(global_poses, x, y)
-        # vec3 = User.safeflatAlgo(x, y)
-        print(f"moveTo vector {vec3=}")
-        print(joints := calcIK(vec3, None))
-        self.pose = joints
-
-    def setTargets(self, centers, ids):
-        if len(centers) == 2:
-            # self.target_x = centers[0][0] + centers[1][0]
-            self.target_x, self.target_y = [(a+b)/2 for a,b in zip(centers[0], centers[1])]
-        else:
-            center = centers[0]
-            id = ids[0]
-            # self.target_x = center[0]
-            self.target_x = center[0]-60 if id == 1 else center[0]+60
-            self.target_y = center[1]
-            # self.target_y = center[1]-45 if id == 1 else center[1]+45
-        print(f"set targets {self.target_x=} {self.target_y=}")
-
-
     def Algo(global_poses, x, y, z):
         current = global_poses['end_effector_joint'][0]
         current_x, current_y, current_z = current
