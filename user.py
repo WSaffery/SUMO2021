@@ -6,6 +6,7 @@ from typing import Callable, Optional
 import numpy as np
 import cv2
 from pupil_apriltags import Detector
+from random import random
 
 class User:
     def __init__(self) -> None:
@@ -22,6 +23,9 @@ class User:
         self.inc = 0.1
         self.last_time = time.time()
         self.locking = False
+        self.target_x = self.target_y = None
+        self.moving = 0
+        self.default = [0.5, 0, 0]
         return
 
     def manual_control(self, global_poses, calcIK):
@@ -59,34 +63,42 @@ class User:
 
 
     def flatAlgo(global_poses, x, y):
-        current_x = global_poses['end_effector_joint'][0][0]
-        current_y  = global_poses['end_effector_joint'][0][1]
-        print(f"{current_x=} {current_y=}")
+        current = global_poses['end_effector_joint'][0]
+        current_x, current_y, current_z = current
+        print(f"current {current_x=} {current_y=} {current_z=}")
         to_x = current_x + ((x-320)/640)*0.1
         to_y = current_y + ((y-240)/480)*0.1
-        to_z = 0
-        # if (to_x != 0 or to_y != 0):
-        #     to_z = 0
-        # else:
-        #     to_z = current[2] - 0.1
+        if (to_x != 0 or to_y != 0):
+            to_z = 0
+        else:
+            to_z = current_z - 0.1
         return np.array([to_x,to_y,to_z])
 
-    def safeflatAlgo(x, y):
-        to_x = -0.1 if (x-320) < 0 else 0.1
-        to_y = -0.1 if (y-240) < 0 else 0.1
-        to_z = 0
-        return np.array([to_x,to_y,to_z])
+    # def safeflatAlgo(x, y):
+    #     to_x = -0.1 if (x-320) < 0 else 0.1
+    #     to_y = -0.1 if (y-240) < 0 else 0.1
+    #     to_z = 0
+    #     return np.array([to_x,to_y,to_z])
 
     def moveTo(self, global_poses, calcIK, x, y):
         vec3 = User.flatAlgo(global_poses, x, y)
         # vec3 = User.safeflatAlgo(x, y)
-        print("moveTo",vec3)
+        print(f"moveTo vector {vec3=}")
         print(joints := calcIK(vec3, None))
         self.pose = joints
 
-    def safeMoveTo(self, calcIK, x, y):
-
-        pass
+    def setTargets(self, centers, ids):
+        if len(centers) == 2:
+            # self.target_x = centers[0][0] + centers[1][0]
+            self.target_x, self.target_y = [(a+b)/2 for a,b in zip(centers[0], centers[1])]
+        else:
+            center = centers[0]
+            id = ids[0]
+            # self.target_x = center[0]
+            self.target_x = center[0]-60 if id == 1 else center[0]+60
+            self.target_y = center[1]
+            # self.target_y = center[1]-45 if id == 1 else center[1]+45
+        print(f"set targets {self.target_x=} {self.target_y=}")
 
     def run(self,
             image: list,
@@ -118,6 +130,8 @@ class User:
         # info output
 
         if tags:
+            centers = []
+            ids = []
             for tag in tags:
                 if tag.tag_id:
                     print("this tag is furthest from the manipulator base")
@@ -130,43 +144,25 @@ class User:
                 start_y = int(tag.corners[0][1])
                 end_x = int(tag.corners[2][0])
                 end_y = int(tag.corners[2][1])
-                center_x, center_y = tag.center
                 cv2.rectangle(image, (start_x, start_y), (end_x, end_y), (255, 0, 255), 3)
-                self.moveTo(global_poses, calcIK, center_x, center_y)
-                self.locking = True
+                centers.append(tag.center)
+                ids.append(tag.tag_id)
+
+            self.setTargets(centers, ids)
+            self.moveTo(global_poses, calcIK, self.target_x, self.target_y)
+            self.locking = True
         elif not self.locking:
             print("hello")
-            self.pose = calcIK([0.5, 0, 0], None)
-        else:
-            self.locking = False
+            self.pose = calcIK(self.default, None)
+            self.default = [x+(random()-random())*2 for x in [0.5, 0, 0]]
+        elif self.target_x != None and self.target_x != None:
+            print(f"continue to {self.target_x=} {self.target_y=}")
+            self.moveTo(global_poses, calcIK, self.target_x, self.target_y)
+            self.moving += 1
+            if (self.moving > 5):
+                self.locking = False
 
         cv2.imshow("View", image)
         cv2.waitKey(1)
-
-        # if self.oldpose == self.pose:
-        #     try:
-        #         self.manual_control(global_poses, calcIK)
-        #     except Exception as e:
-        #         print(e)
-        # else:
-        #     self.oldpose = self.pose
-
-        # self.pose = calcIK(np.array([0.425, 0, 0]), None)
-        # self.pose = calcIK(np.array([0.425, 0, 0]), None)
-
-        # self.moveTo(196, 266)
-
-        # THIS IS AN EXAMPLE TO SHOW YOU HOW TO MOVE THE MANIPULATOR
-        # if self.pose["bravo_axis_e"] > math.pi:
-        #     self.inc = -0.1
-        #
-        # if self.pose["bravo_axis_e"] < math.pi * 0.5:
-        #     self.inc = 0.1
-        #
-        # self.pose["bravo_axis_e"] += self.inc
-
-        # EXAMPLE USAGE OF INVERSE KINEMATICS SOLVER
-        #   Inputs: vec3 position, quaternion orientation
-        # self.pose = calcIK(np.array([0.8, 0, 0.4]), np.array([1, 0, 0, 0]))
 
         return self.pose
