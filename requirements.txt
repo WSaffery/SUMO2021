@@ -2,4 +2,8 @@ pybullet
 numpy
 opencv-python
 scipy
+<<<<<<< HEAD
 pupil-apriltags
+=======
+pupil_apriltags
+>>>>>>> 853b879b67c13bcb93167b7de8667b3c457c6c49
