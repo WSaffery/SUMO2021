@@ -47,9 +47,10 @@ class User:
         self.inc = 0.1
         self.last_time = time.time()
         self.locking = False
-        self.target_x = self.target_y = None
+        self.target_x = self.target_y =  self.target_z = None
         self.moving = 0
-        self.default = [0.5, 0, 0]
+        self.default = [(0.5211272239685059, 8.080899533524644e-06, 0.22556839883327484), (0.0001061355578713119, 0.5224985480308533, -1.2371250704745762e-05, 0.8526401519775391)]
+        self.roam = self.default
         return
 
     def manual_control(self, global_poses, calcIK):
@@ -98,12 +99,6 @@ class User:
             to_z = current_z - 0.1
         return np.array([to_x,to_y,to_z])
 
-    # def safeflatAlgo(x, y):
-    #     to_x = -0.1 if (x-320) < 0 else 0.1
-    #     to_y = -0.1 if (y-240) < 0 else 0.1
-    #     to_z = 0
-    #     return np.array([to_x,to_y,to_z])
-
     def moveTo(self, global_poses, calcIK, x, y):
         vec3 = User.flatAlgo(global_poses, x, y)
         # vec3 = User.safeflatAlgo(x, y)
@@ -123,6 +118,38 @@ class User:
             self.target_y = center[1]
             # self.target_y = center[1]-45 if id == 1 else center[1]+45
         print(f"set targets {self.target_x=} {self.target_y=}")
+
+
+    def Algo(global_poses, x, y, z):
+        current = global_poses['end_effector_joint'][0]
+        current_x, current_y, current_z = current
+        print(f"current {current_x=} {current_y=} {current_z=}")
+        to_x = current_x + x*0.1
+        to_y = current_y + y*0.1
+        to_z = current_z + z*0.1
+        return np.array([to_x,to_y,to_z])
+
+    def moveTo3D(self, global_poses, calcIK, x, y, z):
+        vec3 = User.Algo(global_poses, x, y, z)
+        print(f"moveTo vector {vec3=}")
+        print(joints := calcIK(vec3, None))
+        self.pose = joints
+
+    def setTargets3D(self, centers, ids):
+        if len(centers) == 2:
+            # self.target_x = centers[0][0] + centers[1][0]
+            self.target_x, self.target_y, self.target_z = [(a+b)/2 for a,b in zip(centers[0], centers[1])]
+        else:
+            center = centers[0]
+            id = ids[0]
+            self.target_x = center[0]-60 if id == 1 else center[0]+60
+            self.target_y = center[1]
+            self.target_z = center[2]
+        print(f"set targets {self.target_x=} {self.target_y=} {self.target_z=}")
+
+    def toProperList(tvec):
+        print(out:=tvec.tolist()[0][0])
+        return out
 
     def run(self,
             image: list,
@@ -152,24 +179,55 @@ class User:
         (corners, ids, rejected) = cv2.aruco.detectMarkers(image, arucoDict, parameters=arucoParams)
         cv2.aruco.drawDetectedMarkers(image, corners)
         cv2.aruco.drawDetectedMarkers(image, rejected)
+
+        centers = []
+        ids = []
         if (len(corners)>=1):
             rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[0], 0.02, matrix_coefficients, distortion_coefficients)
+            centers.append(User.toProperList(tvec))
+            ids.append(0)
             cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
             print("CORNER0")
             print(rvec)
             print(tvec)
         if (len(corners)>=2):
             rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[1], 0.02, matrix_coefficients, distortion_coefficients)
+            centers.append(User.toProperList(tvec))
+            ids.append(1)
             cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
             print("CORNER1")
             print(rvec)
             print(tvec)
+        print(f"{centers=} {ids=}")
+        if len(centers) and len(ids):
+            self.setTargets3D(centers, ids)
+            self.moveTo3D(global_poses, calcIK, self.target_x, self.target_y, self.target_z)
+            self.locking = True
+        elif not self.locking:
+            print(f"hello {global_poses['end_effector_joint']}")
+            pos, orient = self.roam
+            self.pose = calcIK(pos, orient)
+            # self.pose = self.default
+            pos = [x+(random()-random())*2 for x in pos]
+            # orient = [x+(random()-random())*2 for x in orient]
+            self.roam = [pos,orient]
+            self.moving -= 1
+            if (self.moving == 0):
+                self.moving = 5
+                self.roam = self.default
+        elif self.target_x != None and self.target_x != None:
+            print(f"continue to {self.target_x=} {self.target_y=}  {self.target_z=}")
+            # self.moveTo(global_poses, calcIK, self.target_x, self.target_y, self.target_z)
+            self.moving += 1
+            if (self.moving > 5):
+                self.locking = False
+
         cv2.imshow("View", image)
         cv2.waitKey(1)
 
-        at_detector = Detector()
-        grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        tags = at_detector.detect(grey)
+        # at_detector = Detector()
+        # grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # tags = at_detector.detect(grey)
 
         # info output
 
