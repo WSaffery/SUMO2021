@@ -8,6 +8,30 @@ import cv2
 from pupil_apriltags import Detector
 from random import random
 
+SHOW_JAW_PROJECTION = 0.001
+height = 480
+width = 640
+
+print("matrix stuff")
+# computed = p.computeProjectionMatrixFOV(fov=100, aspect=width/height, nearVal=SHOW_JAW_PROJECTION, farVal=3.5)
+# changed = np.array(computed).reshape(4, 4)
+# view_matrix = np.array([8.90742484e-01,7.29864445e-04,-4.54507749e-01, -1.28688351e-06,  9.99998715e-01,  1.60331089e-03, 4.54508335e-01, -1.42755223e-03,  8.90741340e-01, -5.80138836e-01,  5.22229923e-02, -1.70142163e-01]).reshape(4, 3)
+# changed = np.matmul(changed, view_matrix).T
+# (matrix_coefficients, distortion_coefficients, _, _, _, _, _) = cv2.decomposeProjectionMatrix(changed)
+# 16 elements
+
+#print(computed)
+matrix_coefficients = np.load("calibration_matrix.npy")#np.array(computed)
+# 3x3
+#print(matrix_coefficients)
+distortion_coefficients = np.load("distortion_coefficients.npy")
+# 5x1
+#print(distortion_coefficients)
+#distortion_coefficients = np.array([computed[0][0], computed[0][5], computed[0][10], computed[0][11], computed[0][13]])
+#[[ 0.02206642  0.20438685 -0.00633739 -0.00140045 -0.85132748]]
+
+print(distortion_coefficients)
+
 class User:
     def __init__(self) -> None:
         self.pose = {
@@ -122,6 +146,26 @@ class User:
             position (vec3) and an orientation (quaternion) and it will return a pose
             dictionary of joint angles to approximate the pose.
         """
+
+        # arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_APRILTAG_36h11)
+        # arucoParams = cv2.aruco.DetectorParameters_create()
+        # (corners, ids, rejected) = cv2.aruco.detectMarkers(image, arucoDict, parameters=arucoParams)
+        # cv2.aruco.drawDetectedMarkers(image, corners)
+        # cv2.aruco.drawDetectedMarkers(image, rejected)
+        # if (len(corners)>=1):
+        #     rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[0], 0.02, matrix_coefficients, distortion_coefficients)
+        #     cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
+        #     print("CORNER0")
+        #     print(rvec)
+        #     print(tvec)
+        # if (len(corners)>=2):
+        #     rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[1], 0.02, matrix_coefficients, distortion_coefficients)
+        #     cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
+        #     print("CORNER1")
+        #     print(rvec)
+        #     print(tvec)
+        # cv2.imshow("View", image)
+        # cv2.waitKey(1)
 
         at_detector = Detector()
         grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
