@@ -2,3 +2,4 @@ pybullet
 numpy
 opencv-python
 scipy
+pupil-apriltags
