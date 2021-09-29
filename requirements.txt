@@ -3,11 +3,6 @@ numpy
 opencv-python
 opencv-contrib-python
 scipy
-<<<<<<< HEAD
-<<<<<<< HEAD
-pupil-apriltags
-=======
 pupil_apriltags
->>>>>>> 853b879b67c13bcb93167b7de8667b3c457c6c49
 =======
 >>>>>>> 67e06ef3517ac919e2597a80ec950491109df5f5
