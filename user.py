@@ -31,7 +31,6 @@ distortion_coefficients = np.load("distortion_coefficients.npy")
 #print(distortion_coefficients)
 #distortion_coefficients = np.array([computed[0][0], computed[0][5], computed[0][10], computed[0][11], computed[0][13]])
 #[[ 0.02206642  0.20438685 -0.00633739 -0.00140045 -0.85132748]]
-
 print(distortion_coefficients)
 
 class Tag:
@@ -55,11 +54,12 @@ class User:
         self.inc = 0.1
         self.last_time = time.time()
         self.locking = False
-        self.target_x = self.target_y =  self.target_z = None
+        self.target_pos = self.target_orient = None
         self.targets = {}
         self.moving = 0
         self.default = [(0.5211272239685059, 8.080899533524644e-06, 0.22556839883327484), (0.0001061355578713119, 0.5224985480308533, -1.2371250704745762e-05, 0.8526401519775391)]
-        self.roam_default = (np.array([0.5, 0, 0.5]), p.getQuaternionFromEuler([0,math.pi/2,0]))
+        # self.roam_default = (np.array([0.5, 0, 0.5]), p.getQuaternionFromEuler([0,math.pi/2,0]))
+        self.roam_default = (np.array([1.2, 0, 0.8]), p.getQuaternionFromEuler([0,math.pi/2,0]))
         self.roam = self.roam_default
         return
 
@@ -96,11 +96,19 @@ class User:
         elif command == "end":
             global_poses['end_effector_joint'] = args[0]
 
+    def averagePerVal(listA, listB):
+        return  [(a+b)/2 for a,b in zip(listA, listB)]
+
+    def percentChange(listA, listB):
+        return [1 + (a - b)/b for a,b in zip(listA, listB)]
+
+    def percentApply(list, percents):
+        return [n*p for n,p in zip(list, percents)]
 
     def Algo(global_poses, x, y, z):
         current = global_poses['end_effector_joint'][0]
         current_x, current_y, current_z = current
-        print(f"current {current_x=} {current_y=} {current_z=}")
+        # print(f"current {current_x=} {current_y=} {current_z=}")
         to_x = current_x + x*0.1
         to_y = current_y + y*0.1
         to_z = current_z + z*0.1
@@ -108,34 +116,52 @@ class User:
 
     def Solvo(global_poses, x, y, z):
         # default_camera_pos = (0.4393743574619293, -0.051950227469205856, 0.4152250289916992)
-        camera_pos = global_poses["camera_end_joint"][0]
-        relative_pos = (x,y,z)
-        return np.array([a+b for a,b in zip(camera_pos, relative_pos)])
+        camera_pos, camera_angle = global_poses["camera_end_joint"]
+        arm_pos, arm_angle = global_poses["end_effector_joint"]
+        relative_pos_percent = User.percentChange(arm_pos, camera_pos)
+        # relative_angle_percent = User.percentChange(arm_angl, camera_angle)
+        relative_pos = [a+b for a,b in zip(camera_pos, (x,y,z))]
+        proper_pos = User.percentApply(relative_pos, relative_pos_percent)
+        proper_angle = arm_angle
+        return np.array(proper_pos), proper_angle
 
     def moveTo3D(self, calcIK, x, y, z):
         vec3 = (x, y, z)
-        print(f"moveTo vector {vec3=}")
-        print(joints := calcIK(vec3, None))
+        joints = calcIK(vec3, None)
+        # print(f"moveTo vector {vec3=}")
+        # print(joints := calcIK(vec3, None))
         self.pose = joints
+
+    def relativeToArm(global_poses, pos, orient):
+        camera_pos, camera_angle = global_poses["camera_end_joint"]
+        arm_pos, arm_angle = global_poses["end_effector_joint"]
+        relative_pos_percent = User.percentChange(camera_pos, arm_pos)
+        relative_angle_percent = User.percentChange(camera_angle, arm_angle)
+        return relative_pos_percent, relative_angle_percent
 
     def setTargets3D(self, tags, global_poses):
         for t in tags:
             t.absPos = User.Solvo(global_poses, *t.center)
-            self.tags[t.id] = t
+            self.targets[t.id] = t
 
-        if len(self.tags) == 2:
-            self.target_x, self.target_y, self.target_z = [(a+b)/2 for a,b in zip(self.tags[0].absPos, self.tags[1].absPos)]
+        if len(self.targets) == 2:
+            if self.targets[0].absPos[1] == self.targets[1].absPos[1]:
+                self.target_pos = User.averagePerVal(self.targets[0].absPos[0], self.targets[1].absPos[0])
+                self.target_orient = self.targets[0].absPos[1]
+            else:
+                # To be updated to take into account the impact of angles
+                self.target_pos = User.averagePerVal(self.targets[0].absPos[0], self.targets[1].absPos[0])
+                self.target_orient =  User.averagePerVal(self.targets[0].absPos[1], self.targets[1].absPos[1])
         else:
-            absPos = tags[0].absPos
-            id = tags[0].id
-            # self.target_x = center[0]-ADJUST if id == 1 else center[0]+ADJUST
-            self.target_x = absPos[0]
-            self.target_y = absPos[1]
-            self.target_z = absPos[2]
-        print(f"set targets {self.target_x=} {self.target_y=} {self.target_z=}")
+            tag = tags[0]
+            id = tag.id
+            self.target_pos = tag.absPos[0]
+            self.target_orient = tag.absPos[1]
+        # print(f"set targets {self.target_x=} {self.target_y=} {self.target_z=}")
 
     def toProperList(tvec):
-        print(out:=tvec.tolist()[0][0])
+        out = tvec.tolist()[0][0]
+        # print(out)
         return out
 
     def run(self,
@@ -160,7 +186,9 @@ class User:
             position (vec3) and an orientation (quaternion) and it will return a pose
             dictionary of joint angles to approximate the pose.
         """
-        print(global_poses)
+        global_orients = [v[1] for v in global_poses.values()]
+        print(global_orients)
+        # print(User.averagePerVal(global_orients[0], global_orients[1]))
         # 'camera_end_joint': [(0.4393743574619293, -0.051950227469205856, 0.4152250289916992), (-0.0007773424149490893, -0.23344528675079346, -0.0001872739812824875, 0.9723696112632751)],
 
         arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_APRILTAG_36h11)
@@ -170,7 +198,7 @@ class User:
             ids = ids.tolist()[0]
         cv2.aruco.drawDetectedMarkers(image, corners)
         cv2.aruco.drawDetectedMarkers(image, rejected)
-        print(ids)
+        # print(ids)
 
         tags = []
         if corners and not ids is None:
@@ -178,18 +206,22 @@ class User:
                 rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[0], 0.02, matrix_coefficients, distortion_coefficients)
                 tags.append(Tag(User.toProperList(tvec), rvec, id))
                 cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
-                print(f"TAG{id}")
-                print(rvec)
-                print(tvec)
+                # print(f"TAG{id}")
+                # print(rvec)
+                # print(tvec)
 
-        print(f"{tags=}")
+        # print(f"{tags=}")
         if tags:
             self.setTargets3D(tags, global_poses)
-            self.moveTo3D(calcIK, self.target_x, self.target_y, self.target_z)
+            print(f"Moving guided to {self.target_pos=} {self.target_orient=}")
+            self.pose = calcIK(self.target_pos, self.target_orient)
+            # self.pose = calcIK(self.target_pos, global_poses['camera_end_joint'][1])
+            # self.moveTo3D(calcIK, self.target_x, self.target_y, self.target_z)
             self.locking = True
         elif not self.locking:
-            print(f"hello {global_poses['end_effector_joint']}")
+            # print(f"hello {global_poses['end_effector_joint']}")
             pos, orient = self.roam
+            print(f"Moving at random to {pos=}")
             self.pose = calcIK(pos, orient)
             # self.pose = self.default
             pos = [pos[0]+(random()-0.5)*0.5, pos[1]+(random()-0.5)*0.5, pos[2]]
@@ -200,11 +232,13 @@ class User:
             if (self.moving == 0):
                 self.moving = 5
                 self.roam = self.roam_default
-        elif self.target_x != None and self.target_x != None and self.target_z != None:
-            print(f"continue to {self.target_x=} {self.target_y=}  {self.target_z=}")
-            self.moveTo3D(global_poses, calcIK, self.target_x, self.target_y, self.target_z)
+        elif not self.target_pos is None and not self.target_orient is None:
+            print(f"continuing without sight to {self.target_pos=} {self.target_orient=}")
+            self.pose = calcIK(self.target_pos, self.target_orient)
+            # self.pose = calcIK(self.target_pos, global_poses['camera_end_joint'][1])
+            # self.moveTo3D(calcIK, self.target_x, self.target_y, self.target_z)
             self.moving += 1
-            if (self.moving > 5):
+            if (self.moving > 20):
                 self.locking = False
 
         # end info output
@@ -212,46 +246,5 @@ class User:
         cv2.imshow("View", image)
         cv2.waitKey(1)
 
-        # at_detector = Detector()
-        # grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        # tags = at_detector.detect(grey)
-
-        # info output
-
-        # if tags:
-        #     centers = []
-        #     ids = []
-        #     for tag in tags:
-        #         if tag.tag_id:
-        #             print("this tag is furthest from the manipulator base")
-        #         else:
-        #             print("this tag is nearest to the manipulator base")
-        #
-        #         print(str(tag.center))
-        #         print(str(tag.corners))
-        #         start_x = int(tag.corners[0][0])
-        #         start_y = int(tag.corners[0][1])
-        #         end_x = int(tag.corners[2][0])
-        #         end_y = int(tag.corners[2][1])
-        #         cv2.rectangle(image, (start_x, start_y), (end_x, end_y), (255, 0, 255), 3)
-        #         centers.append(tag.center)
-        #         ids.append(tag.tag_id)
-        #
-        #     self.setTargets(centers, ids)
-        #     self.moveTo(global_poses, calcIK, self.target_x, self.target_y)
-        #     self.locking = True
-        # elif not self.locking:
-        #     print("hello")
-        #     self.pose = calcIK(self.default, None)
-        #     self.default = [x+(random()-random())*2 for x in [0.5, 0, 0]]
-        # elif self.target_x != None and self.target_x != None:
-        #     print(f"continue to {self.target_x=} {self.target_y=}")
-        #     self.moveTo(global_poses, calcIK, self.target_x, self.target_y)
-        #     self.moving += 1
-        #     if (self.moving > 5):
-        #         self.locking = False
-        #
-        # cv2.imshow("View", image)
-        # cv2.waitKey(1)
 
         return self.pose
