@@ -1,5 +1,5 @@
 pybullet
 numpy
 opencv-python
+opencv-contrib-python
 scipy
-pupil_apriltags

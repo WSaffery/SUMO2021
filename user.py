@@ -147,25 +147,25 @@ class User:
             dictionary of joint angles to approximate the pose.
         """
 
-        # arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_APRILTAG_36h11)
-        # arucoParams = cv2.aruco.DetectorParameters_create()
-        # (corners, ids, rejected) = cv2.aruco.detectMarkers(image, arucoDict, parameters=arucoParams)
-        # cv2.aruco.drawDetectedMarkers(image, corners)
-        # cv2.aruco.drawDetectedMarkers(image, rejected)
-        # if (len(corners)>=1):
-        #     rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[0], 0.02, matrix_coefficients, distortion_coefficients)
-        #     cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
-        #     print("CORNER0")
-        #     print(rvec)
-        #     print(tvec)
-        # if (len(corners)>=2):
-        #     rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[1], 0.02, matrix_coefficients, distortion_coefficients)
-        #     cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
-        #     print("CORNER1")
-        #     print(rvec)
-        #     print(tvec)
-        # cv2.imshow("View", image)
-        # cv2.waitKey(1)
+        arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_APRILTAG_36h11)
+        arucoParams = cv2.aruco.DetectorParameters_create()
+        (corners, ids, rejected) = cv2.aruco.detectMarkers(image, arucoDict, parameters=arucoParams)
+        cv2.aruco.drawDetectedMarkers(image, corners)
+        cv2.aruco.drawDetectedMarkers(image, rejected)
+        if (len(corners)>=1):
+            rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[0], 0.02, matrix_coefficients, distortion_coefficients)
+            cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
+            print("CORNER0")
+            print(rvec)
+            print(tvec)
+        if (len(corners)>=2):
+            rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[1], 0.02, matrix_coefficients, distortion_coefficients)
+            cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
+            print("CORNER1")
+            print(rvec)
+            print(tvec)
+        cv2.imshow("View", image)
+        cv2.waitKey(1)
 
         at_detector = Detector()
         grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -173,40 +173,40 @@ class User:
 
         # info output
 
-        if tags:
-            centers = []
-            ids = []
-            for tag in tags:
-                if tag.tag_id:
-                    print("this tag is furthest from the manipulator base")
-                else:
-                    print("this tag is nearest to the manipulator base")
-
-                print(str(tag.center))
-                print(str(tag.corners))
-                start_x = int(tag.corners[0][0])
-                start_y = int(tag.corners[0][1])
-                end_x = int(tag.corners[2][0])
-                end_y = int(tag.corners[2][1])
-                cv2.rectangle(image, (start_x, start_y), (end_x, end_y), (255, 0, 255), 3)
-                centers.append(tag.center)
-                ids.append(tag.tag_id)
-
-            self.setTargets(centers, ids)
-            self.moveTo(global_poses, calcIK, self.target_x, self.target_y)
-            self.locking = True
-        elif not self.locking:
-            print("hello")
-            self.pose = calcIK(self.default, None)
-            self.default = [x+(random()-random())*2 for x in [0.5, 0, 0]]
-        elif self.target_x != None and self.target_x != None:
-            print(f"continue to {self.target_x=} {self.target_y=}")
-            self.moveTo(global_poses, calcIK, self.target_x, self.target_y)
-            self.moving += 1
-            if (self.moving > 5):
-                self.locking = False
-
-        cv2.imshow("View", image)
-        cv2.waitKey(1)
+        # if tags:
+        #     centers = []
+        #     ids = []
+        #     for tag in tags:
+        #         if tag.tag_id:
+        #             print("this tag is furthest from the manipulator base")
+        #         else:
+        #             print("this tag is nearest to the manipulator base")
+        #
+        #         print(str(tag.center))
+        #         print(str(tag.corners))
+        #         start_x = int(tag.corners[0][0])
+        #         start_y = int(tag.corners[0][1])
+        #         end_x = int(tag.corners[2][0])
+        #         end_y = int(tag.corners[2][1])
+        #         cv2.rectangle(image, (start_x, start_y), (end_x, end_y), (255, 0, 255), 3)
+        #         centers.append(tag.center)
+        #         ids.append(tag.tag_id)
+        #
+        #     self.setTargets(centers, ids)
+        #     self.moveTo(global_poses, calcIK, self.target_x, self.target_y)
+        #     self.locking = True
+        # elif not self.locking:
+        #     print("hello")
+        #     self.pose = calcIK(self.default, None)
+        #     self.default = [x+(random()-random())*2 for x in [0.5, 0, 0]]
+        # elif self.target_x != None and self.target_x != None:
+        #     print(f"continue to {self.target_x=} {self.target_y=}")
+        #     self.moveTo(global_poses, calcIK, self.target_x, self.target_y)
+        #     self.moving += 1
+        #     if (self.moving > 5):
+        #         self.locking = False
+        #
+        # cv2.imshow("View", image)
+        # cv2.waitKey(1)
 
         return self.pose
