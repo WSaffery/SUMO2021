@@ -7,6 +7,7 @@ import numpy as np
 import cv2
 from pupil_apriltags import Detector
 from random import random
+import pybullet as p
 
 SHOW_JAW_PROJECTION = 0.001
 height = 480
@@ -55,9 +56,11 @@ class User:
         self.last_time = time.time()
         self.locking = False
         self.target_x = self.target_y =  self.target_z = None
+        self.targets = {}
         self.moving = 0
         self.default = [(0.5211272239685059, 8.080899533524644e-06, 0.22556839883327484), (0.0001061355578713119, 0.5224985480308533, -1.2371250704745762e-05, 0.8526401519775391)]
-        self.roam = self.default
+        self.roam_default = (np.array([0.5, 0, 0.5]), p.getQuaternionFromEuler([0,math.pi/2,0]))
+        self.roam = self.roam_default
         return
 
     def manual_control(self, global_poses, calcIK):
@@ -137,26 +140,31 @@ class User:
         return np.array([to_x,to_y,to_z])
 
     def Solvo(global_poses, x, y, z):
-        default_camera_pos = (0.4393743574619293, -0.051950227469205856, 0.4152250289916992)
+        # default_camera_pos = (0.4393743574619293, -0.051950227469205856, 0.4152250289916992)
+        camera_pos = global_poses["camera_end_joint"][0]
         relative_pos = (x,y,z)
-        return np.array([a+b for a,b in zip(default_camera_pos, relative_pos)])
+        return np.array([a+b for a,b in zip(camera_pos, relative_pos)])
 
-    def moveTo3D(self, global_poses, calcIK, x, y, z):
-        vec3 = User.Solvo(global_poses, x, y, z)
+    def moveTo3D(self, calcIK, x, y, z):
+        vec3 = (x, y, z)
         print(f"moveTo vector {vec3=}")
         print(joints := calcIK(vec3, None))
         self.pose = joints
 
-    def setTargets3D(self, tags):
-        if len(tags) == 2:
-            self.target_x, self.target_y, self.target_z = [(a+b)/2 for a,b in zip(tags[0].center, tags[1].center)]
+    def setTargets3D(self, tags, global_poses):
+        for t in tags:
+            t.absPos = User.Solvo(global_poses, *t.center)
+            self.tags[t.id] = t
+
+        if len(self.tags) == 2:
+            self.target_x, self.target_y, self.target_z = [(a+b)/2 for a,b in zip(self.tags[0].absPos, self.tags[1].absPos)]
         else:
-            center = tags[0].center
+            absPos = tags[0].absPos
             id = tags[0].id
             # self.target_x = center[0]-ADJUST if id == 1 else center[0]+ADJUST
-            self.target_x = center[0]
-            self.target_y = center[1]
-            self.target_z = center[2]
+            self.target_x = absPos[0]
+            self.target_y = absPos[1]
+            self.target_z = absPos[2]
         print(f"set targets {self.target_x=} {self.target_y=} {self.target_z=}")
 
     def toProperList(tvec):
@@ -209,21 +217,22 @@ class User:
 
         print(f"{tags=}")
         if tags:
-            self.setTargets3D(tags)
-            self.moveTo3D(global_poses, calcIK, self.target_x, self.target_y, self.target_z)
+            self.setTargets3D(tags, global_poses)
+            self.moveTo3D(calcIK, self.target_x, self.target_y, self.target_z)
             self.locking = True
         elif not self.locking:
             print(f"hello {global_poses['end_effector_joint']}")
             pos, orient = self.roam
             self.pose = calcIK(pos, orient)
             # self.pose = self.default
-            pos = [x+(random()-random())*2 for x in pos]
+            pos = [pos[0]+(random()-0.5)*0.5, pos[1]+(random()-0.5)*0.5, pos[2]]
+            # pos = [x+(random.random()-0.5)*0.5 for x in pos]
             # orient = [x+(random()-random())*2 for x in orient]
             self.roam = [pos,orient]
             self.moving -= 1
             if (self.moving == 0):
                 self.moving = 5
-                self.roam = self.default
+                self.roam = self.roam_default
         elif self.target_x != None and self.target_x != None and self.target_z != None:
             print(f"continue to {self.target_x=} {self.target_y=}  {self.target_z=}")
             self.moveTo3D(global_poses, calcIK, self.target_x, self.target_y, self.target_z)
