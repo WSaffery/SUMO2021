@@ -23,8 +23,8 @@ print("matrix stuff")
 # 16 elements
 
 #print(computed)
-# fmco=width/(2 * math.tan(100 * math.pi / 360))
-fmco = 1 / math.tan((100/2)*(math.pi/180))
+fmco=width/(2 * math.tan(100 * math.pi / 360))
+# fmco = 1 / math.tan((100/2)*(math.pi/180))
 # fmco = height / 2*math.tan((100/2)*(math.pi/180))
 matrix_coefficients = np.array([fmco,0,width/2,0,fmco,height/2,0,0,1]).reshape((3, 3))
 distortion_coefficients = np.array([0.,0.,0.,0.,0.])
@@ -165,14 +165,20 @@ class User:
         cam_rot_matrix = User.quaternion_rotation_matrix(camera_angle)
         cam_pos_vector = np.array(camera_pos)
         tag_pos_vector = np.array((x,y,z))
-        absolute_point = np.matmul(cam_rot_matrix, tag_pos_vector) + cam_pos_vector
+        p.loadURDF("./sphereB.urdf", basePosition = (x,y,z))
+        print(f"{cam_pos_vector=} {np.matmul(cam_rot_matrix, tag_pos_vector)=}")
+        absolute_point =  cam_pos_vector - np.matmul(cam_rot_matrix, tag_pos_vector)
         arm_pos, arm_angle = global_poses["end_effector_joint"]
-        relative_pos_percent = User.percentChange(arm_pos, camera_pos)
-        # relative_angle_percent = User.percentChange(arm_angl, camera_angle)
-        # relative_pos = [a+b for a,b in zip(camera_pos, (x,y,z))]
-        proper_pos = User.percentApply(absolute_point, relative_pos_percent)
+        p.loadURDF("./sphereR.urdf", basePosition = absolute_point)
         proper_angle = arm_angle
-        return np.array(proper_pos), proper_angle
+        return np.array(absolute_point), proper_angle
+
+    def simpleSolvo(global_poses, tvec):
+        camera_pos, camera_angle = global_poses["camera_end_joint"]
+        simplePos = camera_pos - tvec[0][0]
+        p.loadURDF("./sphereR.urdf", basePosition = simplePos)
+        return simplePos
+
 
     def moveTo3D(self, calcIK, x, y, z):
         vec3 = (x, y, z)
