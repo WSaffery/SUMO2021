@@ -32,9 +32,11 @@ class User:
         self.last_time = time.time()
         self.vec = [0,0,0]
         self.quat = [0,0,0,0]
+        self.roam_default = (np.array([1.4, 0, 1.2]), p.getQuaternionFromEuler([0,math.pi/2,0]))
         self.targets = {}
         self.visualProps = {}
         self.state = RoboStates.Searching
+        self.searchState = {"Mode": 0, "Val": 2}
         self.grabTarget = []
         return
 
@@ -101,7 +103,21 @@ class User:
         image = cv2.putText(image, self.state.name, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
         # the actual machine
         if self.state == RoboStates.Searching:
-            self.setPose(calcIK, np.array([0.5, 0, 0.2]), p.getQuaternionFromEuler([0,math.sin(time.time())*0.8+math.pi/2,0]))
+            def search_movement(user):
+                pos, orient = user.roam_default
+                x, y = get_XY()
+                pos = (pos[0]+x, pos[1]+y, pos[2])
+                self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
+                return pos, orient
+
+            def get_XY():
+                modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
+                if self.searchState["Mode"] == 0:
+                    self.searchState["Val"] += 4
+                return modes[self.searchState["Mode"]]
+
+            self.setPose(calcIK, *search_movement(self))
+            # self.setPose(calcIK, np.array([0.5, 0, 0.2]), p.getQuaternionFromEuler([0,math.sin(time.time())*0.8+math.pi/2,0]))
             if (n_tags==1):
                 self.state = RoboStates.Located_1
             elif (n_tags==2):
