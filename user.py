@@ -117,7 +117,7 @@ class User:
         # the actual machine
         #Hey buddy
         if self.state == RoboStates.Searching:
-            self.setPose(calcIK, *search_movement(self))
+            self.setPose(calcIK, *self.search_movement())
             # self.setPose(calcIK, np.array([0.5, 0, 0.2]), p.getQuaternionFromEuler([0,math.sin(time.time())*0.8+math.pi/2,0]))
             if (n_tags==1):
                 self.state = RoboStates.Located_1
@@ -125,7 +125,7 @@ class User:
                 self.state = RoboStates.Located_2
             pass
         if self.state == RoboStates.Located_1:
-            self.setPose(calcIK, *search_movement(self))
+            self.setPose(calcIK, *self.search_movement())
             # self.setPose(calcIK, np.array([0.5, 0, 0.2]), p.getQuaternionFromEuler([0,math.sin(time.time())*0.8+math.pi/2,0]))
             if (n_tags==2):
                 self.state = RoboStates.Located_2
