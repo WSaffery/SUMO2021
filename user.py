@@ -124,7 +124,7 @@ class User:
             time.sleep(0.01)
 
         if self.state == RoboStates.Located_1:
-            target_id, target_pos = list(self.targets.items())[0])
+            target_id, target_pos = list(self.targets.items())[0]
             print(f"{target_id=} {target_pos=}")
             unsigned_offset = 0.15
             offset = -unsigned_offset if target_id == 1 else unsigned_offset
