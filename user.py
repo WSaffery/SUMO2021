@@ -126,7 +126,7 @@ class User:
         if self.state == RoboStates.Located_1:
             print(f"{self.targets[0]=}")
             target_id, target_pos = list(self.targets.items())[0]
-            unsigned_offset = 0.165
+            unsigned_offset = 0.15
             offset = -unsigned_offset if target_id == 1 else unsigned_offset
             self.grabTarget = (target_pos[0]+offset,target_pos[1],target_pos[2])
             self.state = RoboStates.Grabbing
@@ -148,6 +148,9 @@ class User:
                     break
             if compare:
                 self.state = RoboStates.Searching
+                # Resets so it doesn't average between old and new points after a static break (moved UAV)
+                # Experimental
+                self.targets = {}
 
 
         cv2.imshow("View", image)
