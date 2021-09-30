@@ -29,15 +29,11 @@ class User:
             "bravo_axis_f": math.pi * 0.9,
             "bravo_axis_g": math.pi
         }
-        self.inc = 0.1
-        self.last_time = time.time()
         self.vec = [0,0,0]
         self.quat = [0,0,0,0]
-        self.roam_default = (np.array([0.6, 0, 7]), p.getQuaternionFromEuler([0,math.pi/2,0]))
         self.targets = {}
         self.targetLastUpdate = {}
         self.state = RoboStates.Searching
-        self.searchState = {"Mode": 0, "Val": 0.2}
         self.grabTarget = []
         self.visualProps = {}
         return
@@ -82,7 +78,6 @@ class User:
 
         n_tags = len(self.targets)
         image = cv2.putText(image, self.state.name, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
-        # the actual machine
 
         if tags:
             if (n_tags==1):
@@ -132,7 +127,6 @@ class User:
                 self.targets = {}
             else:
                 old = {k:v for k,v in self.pose.items()}
-                print(f"middle {self.grabTarget=}")
                 self.setPose(calcIK, self.grabTarget+np.array([math.sin(time.time()*3)*0.01,math.sin(time.time()*3)*0.01,0]), None)
                 compare = True
                 for k in old.keys():
@@ -141,10 +135,7 @@ class User:
                         break
                 if compare:
                     self.state = RoboStates.Searching
-                    # Resets so it doesn't average between old and new points after a static break (moved UAV)
-                    # Experimental
                     self.targets = {}
-
 
         cv2.imshow("View", image)
         cv2.waitKey(1)
