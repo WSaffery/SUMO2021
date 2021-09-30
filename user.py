@@ -121,11 +121,11 @@ class User:
             pos = (pos[0]+x, pos[1]+y, pos[2])
             self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
             self.setPose(calcIK, pos, orient)
-            time.sleep(0.2)
+            time.sleep(0.01)
 
         if self.state == RoboStates.Located_1:
             target_id, target_pos = list(self.targets.items())[0]
-            offset = -0.7 if target_id == 1 else 0.7
+            offset = -0.2 if target_id == 1 else 0.2
             pos = (target_pos[0]+offset,target_pos[1],target_pos[2])
             orient = self.roam_default[1]
             modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
@@ -135,7 +135,7 @@ class User:
             pos = (pos[0]+x, pos[1]+y, pos[2])
             self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
             self.setPose(calcIK, pos, orient)
-            time.sleep(0.2)
+            time.sleep(0.01)
 
         if self.state == RoboStates.Located_2:
             self.grabTarget = (self.targets[0]+self.targets[1])/2
