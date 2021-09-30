@@ -85,17 +85,15 @@ class User:
         self.pose = calcIK(vec, quat)
 
     def search_movement(self):
-        pos, orient = user.roam_default
-        x, y = get_XY()
+        pos, orient = self.roam_default
+        modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
+        if self.searchState["Mode"] == 0:
+            self.searchState["Val"] += 4
+        x, y =  modes[self.searchState["Mode"]]
         pos = (pos[0]+x, pos[1]+y, pos[2])
         self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
         return pos, orient
 
-    def get_XY():
-        modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
-        if self.searchState["Mode"] == 0:
-            self.searchState["Val"] += 4
-        return modes[self.searchState["Mode"]]
 
     def run(self, image: list,  global_poses: Dict[str, np.ndarray], calcIK: Callable[[np.ndarray, Optional[np.ndarray]], Dict[str, float]]) -> Dict[str, float]:
 
