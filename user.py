@@ -23,10 +23,12 @@ print("matrix stuff")
 # 16 elements
 
 #print(computed)
-matrix_coefficients = np.load("calibration_matrix.npy")#np.array(computed)
-# 3x3
-#print(matrix_coefficients)
-distortion_coefficients = np.load("distortion_coefficients.npy")
+# fmco=width/(2 * math.tan(100 * math.pi / 360))
+fmco = 1 / math.tan((100/2)*(math.pi/180))
+# fmco = height / 2*math.tan((100/2)*(math.pi/180))
+matrix_coefficients = np.array([fmco,0,width/2,0,fmco,height/2,0,0,1]).reshape((3, 3))
+distortion_coefficients = np.array([0.,0.,0.,0.,0.])
+
 # 5x1
 #print(distortion_coefficients)
 #distortion_coefficients = np.array([computed[0][0], computed[0][5], computed[0][10], computed[0][11], computed[0][13]])
@@ -200,9 +202,14 @@ class User:
             orientList.append(x[1])
         pos = User.averagePerValManyList(posList)
         orient = User.averagePerValManyList(orientList)
+        print(f"{sum(pos)=} {sum(self.targets[id].absPos[0])=}")
+        print(abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))))
         if (abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))) <= 0.1):
             print("infavour of collective")
             self.targets[id].absPos = (pos, orient)
+        else:
+            print("drastic shift")
+            self.targets = {}
 
     def setTargets3D(self, tags, global_poses):
         for t in tags:
