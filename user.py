@@ -23,16 +23,12 @@ print("matrix stuff")
 # 16 elements
 
 #print(computed)
-fmco=width/(2 * math.tan(100 * math.pi / 360))
+fmco=height/(2 * math.tan((100/2) * (math.pi / 180)))
 # fmco = 1 / math.tan((100/2)*(math.pi/180))
 # fmco = height / 2*math.tan((100/2)*(math.pi/180))
 matrix_coefficients = np.array([fmco,0,width/2,0,fmco,height/2,0,0,1]).reshape((3, 3))
 distortion_coefficients = np.array([0.,0.,0.,0.,0.])
 
-# 5x1
-#print(distortion_coefficients)
-#distortion_coefficients = np.array([computed[0][0], computed[0][5], computed[0][10], computed[0][11], computed[0][13]])
-#[[ 0.02206642  0.20438685 -0.00633739 -0.00140045 -0.85132748]]
 print(distortion_coefficients)
 
 class Tag:
@@ -130,15 +126,6 @@ class User:
     def percentApply(list, percents):
         return [n*p for n,p in zip(list, percents)]
 
-    def Algo(global_poses, x, y, z):
-        current = global_poses['end_effector_joint'][0]
-        current_x, current_y, current_z = current
-        # print(f"current {current_x=} {current_y=} {current_z=}")
-        to_x = current_x + x*0.1
-        to_y = current_y + y*0.1
-        to_z = current_z + z*0.1
-        return np.array([to_x,to_y,to_z])
-
     def quaternion_rotation_matrix(Q):
         # Extract the values from Q
         q0 = Q[0]
@@ -153,7 +140,7 @@ class User:
 
         # Second row of the rotation matrix
         r10 = 2 * (q1 * q2 + q0 * q3)
-        r11 = 2 * (q0 * q0 + q2 * q2) - 1
+        r11 = 2 * (q0 * q0 + q2 * q2) + 1
         r12 = 2 * (q2 * q3 - q0 * q1)
 
         # Third row of the rotation matrix
@@ -169,15 +156,14 @@ class User:
 
 
     def Solvo(global_poses, x, y, z):
-        # default_camera_pos = (0.4393743574619293, -0.051950227469205856, 0.4152250289916992)
         camera_pos, camera_angle = global_poses["camera_end_joint"]
-        # cam_rot_matrix = np.array(p.getMatrixFromQuaternion(camera_angle)).reshape((3,3))
         cam_rot_matrix = User.quaternion_rotation_matrix(camera_angle)
         cam_pos_vector = np.array(camera_pos)
         tag_pos_vector = np.array((x,y,z))
         # p.loadURDF("./sphereB.urdf", basePosition = (x,y,z))
         print(f"{cam_pos_vector=} {np.matmul(cam_rot_matrix, tag_pos_vector)=}")
-        absolute_point =  cam_pos_vector - np.matmul(cam_rot_matrix, tag_pos_vector)
+        temp = np.matmul(cam_rot_matrix, tag_pos_vector)
+        absolute_point =  cam_pos_vector - temp
         arm_pos, arm_angle = global_poses["end_effector_joint"]
         # p.loadURDF("./sphereR.urdf", basePosition = absolute_point)
         proper_angle = arm_angle
@@ -286,7 +272,7 @@ class User:
                 (px,py) = User.Search.rotate(0, radius, arc * point_num)
                 px += center[0]
                 py += center[1]
-                return (px,py)
+            return (px,py)
 
         def search_movement(user, coordinates=None):
             if coordinates is None:
@@ -324,11 +310,6 @@ class User:
             pos[0] += 0.3
         return pos, orient
 
-    # def singleTargetAlgo(single_pos, id):
-    #     offset = 0.2
-    #     signed_offset = -1*offset if id == 1 else offset
-    #     return (single_pos[0] + signed_offset, single_pos[1], single_pos[2])
-
     def run(self,
             image: list,
             global_poses: Dict[str, np.ndarray],
@@ -351,11 +332,6 @@ class User:
             position (vec3) and an orientation (quaternion) and it will return a pose
             dictionary of joint angles to approximate the pose.
         """
-        # global_orients = [v[1] for v in global_poses.values()]
-        # print(global_orients)
-        # print(User.averagePerVal(global_orients[0], global_orients[1]))
-        # 'camera_end_joint': [(0.4393743574619293, -0.051950227469205856, 0.4152250289916992), (-0.0007773424149490893, -0.23344528675079346, -0.0001872739812824875, 0.9723696112632751)],
-
         arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_APRILTAG_36h11)
         arucoParams = cv2.aruco.DetectorParameters_create()
         (corners, ids, rejected) = cv2.aruco.detectMarkers(image, arucoDict, parameters=arucoParams)
@@ -363,36 +339,26 @@ class User:
             ids = ids.tolist()[0]
         cv2.aruco.drawDetectedMarkers(image, corners)
         cv2.aruco.drawDetectedMarkers(image, rejected)
-        # print(ids)
 
         tags = []
         if corners and not ids is None:
             for tag,id in zip(corners, ids):
-                rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[0], 0.02, matrix_coefficients, distortion_coefficients)
+                rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[0], 0.06, matrix_coefficients, distortion_coefficients)
                 tags.append(Tag(User.toProperList(tvec), rvec, id))
                 cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
-                # print(f"TAG{id}")
-                # print(rvec)
-                # print(tvec)
 
-        # print(f"{tags=}")
+
         if tags:
             self.setTargets3D(tags, global_poses)
-
-        # self.manual_control(global_poses, calcIK)
 
         if len(self.targets) == 2:
             self.locking = True
             print(f"Moving guided 2x to {self.target_pos=} {self.target_orient=}")
-            # moded_pos = self.modedPos(global_poses["end_effector_joint"][0])
-            # self.updateMode()
             old = {k:v for k,v in self.pose.items()}
-            # print(f"{old=}")
             val = 50
             self.updateProp(2, self.target_pos)
             if self.lockedin == 0:
                 self.pose = calcIK(self.target_pos, self.target_orient)
-                # print(f"comparing {old=}, {self.pose=}"
                 compare = True
                 for k in old.keys():
                     if round(old[k],3) != round(self.pose[k],3):
@@ -400,33 +366,14 @@ class User:
                         break
                 if compare:
                     self.lockedin = val
-                    # self.target_pos[0] += 0.1
-                    # self.target_pos[1] += 0.1
-                    self.target_pos[2] -= 0.5
+                    self.target_pos[2] -= 0.2
                     self.pose = calcIK(self.target_pos, self.target_orient)
             else:
-                # pos, orient = User.Search.search_movement(self, (self.target_pos, self.target_orient))
-                # print(f"Moving to search for more images {pos=} {orient=}")
-                # self.pose = calcIK(pos, orient)
-                # Xcent = abs(self.target_pos[0])/sum([abs(x) for x in self.target_pos[0:2]])
-                # Ycent = 1-Xcent
-                # # amount = 1.95-(self.lockedin/val)
-                # amount = 0.95
-                # self.target_pos[0] *= (1+Xcent)*amount
-                # self.target_pos[1] *= (1+Ycent)*amount
-                # self.target_pos[1] += 0.1
-                # self.target_pos[2] -= self.lockedin/val*2.7
-                # self.target_orient = None
                 self.all_targets = {0:[],1:[]}
                 x, y, z = global_poses["end_effector_joint"][0]
-                # z -= 0.1*(val-self.lockedin)
-                # x += 0.1
                 z -= 0.2
                 print(f"Move down {(x,y,x)=}")
                 self.pose = calcIK((x,y,z),  p.getQuaternionFromEuler([0,math.pi/2,0]))
-                # self.target_pos[2] -= 0.3
-                # self.target_pos, self.target_orient = User.Solvo(global_poses, 1.2, 1.2, -1)
-                # self.pose = calcIK(self.target_pos, self.target_orient)
                 self.lockedin -= 1
 
         elif len(self.targets) == 1 and self.moving < 5:
@@ -436,6 +383,7 @@ class User:
             if (self.moving > 5):
                 self.locking = False
         elif not self.locking:
+            # pos, orient = User.Search.search_movement(self, self.single_target())
             if len(self.targets) == 1:
                 pos, orient = User.Search.search_movement(self, self.single_target())
             else:
