@@ -84,6 +84,19 @@ class User:
         self.quat = quat
         self.pose = calcIK(vec, quat)
 
+    def search_movement(self):
+        pos, orient = user.roam_default
+        x, y = get_XY()
+        pos = (pos[0]+x, pos[1]+y, pos[2])
+        self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
+        return pos, orient
+
+    def get_XY():
+        modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
+        if self.searchState["Mode"] == 0:
+            self.searchState["Val"] += 4
+        return modes[self.searchState["Mode"]]
+
     def run(self, image: list,  global_poses: Dict[str, np.ndarray], calcIK: Callable[[np.ndarray, Optional[np.ndarray]], Dict[str, float]]) -> Dict[str, float]:
 
         arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_APRILTAG_36h11)
@@ -104,19 +117,6 @@ class User:
         # the actual machine
         #Hey buddy
         if self.state == RoboStates.Searching:
-            def search_movement(user):
-                pos, orient = user.roam_default
-                x, y = get_XY()
-                pos = (pos[0]+x, pos[1]+y, pos[2])
-                self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
-                return pos, orient
-
-            def get_XY():
-                modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
-                if self.searchState["Mode"] == 0:
-                    self.searchState["Val"] += 4
-                return modes[self.searchState["Mode"]]
-
             self.setPose(calcIK, *search_movement(self))
             # self.setPose(calcIK, np.array([0.5, 0, 0.2]), p.getQuaternionFromEuler([0,math.sin(time.time())*0.8+math.pi/2,0]))
             if (n_tags==1):
@@ -125,7 +125,8 @@ class User:
                 self.state = RoboStates.Located_2
             pass
         if self.state == RoboStates.Located_1:
-            self.setPose(calcIK, np.array([0.5, 0, 0.2]), p.getQuaternionFromEuler([0,math.sin(time.time())*0.8+math.pi/2,0]))
+            self.setPose(calcIK, *search_movement(self))
+            # self.setPose(calcIK, np.array([0.5, 0, 0.2]), p.getQuaternionFromEuler([0,math.sin(time.time())*0.8+math.pi/2,0]))
             if (n_tags==2):
                 self.state = RoboStates.Located_2
             pass
