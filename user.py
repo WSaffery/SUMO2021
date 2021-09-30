@@ -204,12 +204,12 @@ class User:
         orient = User.averagePerValManyList(orientList)
         print(f"{sum(pos)=} {sum(self.targets[id].absPos[0])=}")
         print(abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))))
-        if (abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))) <= 0.1):
+        if (abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))) <= 0.5):
             print("infavour of collective")
             self.targets[id].absPos = (pos, orient)
         else:
             print("drastic shift")
-            self.targets = {}
+            self.all_targets = {}
 
     def setTargets3D(self, tags, global_poses):
         for t in tags:
