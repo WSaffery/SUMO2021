@@ -202,15 +202,16 @@ class User:
             orientList.append(x[1])
         pos = User.averagePerValManyList(posList)
         orient = User.averagePerValManyList(orientList)
-        print(f"{sum(pos)=} {sum(self.targets[id].absPos[0])=}")
-        print(abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))))
-        if (abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))) <= 0.5):
-            print("infavour of collective")
-            self.targets[id].absPos = (pos, orient)
-        else:
-            print("drastic shift")
-            self.all_targets = {0:[],1:[]}
-            self.all_targets[id].append(self.targets[id])
+        self.targets[id].absPos = (pos, orient)
+        # print(f"{sum(pos)=} {sum(self.targets[id].absPos[0])=}")
+        # print(abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))))
+        # if (abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))) <= 0.5):
+        #     print("infavour of collective")
+        #     self.targets[id].absPos = (pos, orient)
+        # else:
+        #     print("drastic shift")
+        #     self.all_targets = {0:[],1:[]}
+        #     self.all_targets[id].append(self.targets[id])
 
     def setTargets3D(self, tags, global_poses):
         for t in tags:
@@ -231,10 +232,10 @@ class User:
                 # To be updated to take into account the impact of angles more accurately
                 print("Patchwork spot")
                 self.target_pos = User.averagePerVal(self.targets[0].absPos[0], self.targets[1].absPos[0])
-                self.target_orient = self.targets[0].absPos[1]
+                self.target_orient = User.averagePerVal(self.targets[0].absPos[1], self.targets[1].absPos[1])
                 # self.target_orient =  User.averagePerVal(self.targets[0].absPos[1], self.targets[1].absPos[1])
                 print(f"{self.targets[0].absPos[0]=},{self.targets[1].absPos[0]=}")
-                print(f"{self.targets[0].absPos[1]=},{self.targets[1].absPos[1]=}")
+                print(f"{self.targets[1].absPos[1]=},{self.targets[1].absPos[1]=}")
         else:
             tag = tags[0]
             self.target_pos = tag.absPos[0]
@@ -257,8 +258,10 @@ class User:
     class Search:
         Mode = 0
         Val = 2
-        def search_movement(user):
-            pos, orient = user.roam_default
+        def search_movement(user, coordinates=None):
+            if coordinates is None:
+                coordinates=user.roam_default
+            pos, orient = coordinates
             x, y = User.Search.get_XY()
             pos = (pos[0]+x, pos[1]+y, pos[2])
             User.Search.Mode = (User.Search.Mode + 1)%4
@@ -343,17 +346,20 @@ class User:
                     self.target_pos[2] -= 0.1
                     self.pose = calcIK(self.target_pos, self.target_orient)
             else:
-                Xcent = abs(self.target_pos[0])/sum([abs(x) for x in self.target_pos[0:2]])
-                Ycent = 1-Xcent
-                # amount = 1.95-(self.lockedin/val)
-                amount = 0.95
-                self.target_pos[0] *= (1+Xcent)*amount
-                self.target_pos[1] *= (1+Ycent)*amount
-                # self.target_pos[1] += 0.1
-                self.target_pos[2] -= self.lockedin/val*2.7
-                # self.target_pos[2] -= 0.3
-                # self.target_pos, self.target_orient = User.Solvo(global_poses, 1.2, 1.2, -1)
-                # self.pose = calcIK(self.target_pos, self.target_orient)
+                pos, orient = User.Search.search_movement(self, (self.target_pos, self.target_orient))
+                print(f"Moving to search for more images {pos=} {orient=}")
+                self.pose = calcIK(pos, orient)
+                # Xcent = abs(self.target_pos[0])/sum([abs(x) for x in self.target_pos[0:2]])
+                # Ycent = 1-Xcent
+                # # amount = 1.95-(self.lockedin/val)
+                # amount = 0.95
+                # self.target_pos[0] *= (1+Xcent)*amount
+                # self.target_pos[1] *= (1+Ycent)*amount
+                # # self.target_pos[1] += 0.1
+                # self.target_pos[2] -= self.lockedin/val*2.7
+                # # self.target_pos[2] -= 0.3
+                # # self.target_pos, self.target_orient = User.Solvo(global_poses, 1.2, 1.2, -1)
+                # # self.pose = calcIK(self.target_pos, self.target_orient)
                 self.lockedin -= 1
 
         elif len(self.targets) == 1 and self.moving < 5:
