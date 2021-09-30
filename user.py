@@ -73,7 +73,7 @@ class User:
 
         if self.state == RoboStates.Searching:
             on_line_pos = np.array([0.65, 0.15, -0.05]) + math.sin(time.time()) * np.array([0.3, 0.3, 0])
-            self.setPose(calcIK, on_line_pos, [0, sqrt(1/2), 0, sqrt(1/2)])
+            self.setPose(calcIK, on_line_pos, [0, math.sqrt(1/2), 0, math.sqrt(1/2)])
 
         if self.state == RoboStates.Located_1:
             if 0 in self.targets and ((time.time()-self.targetLastUpdate[0])>0.3):
