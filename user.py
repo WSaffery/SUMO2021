@@ -190,30 +190,11 @@ class User:
         relative_angle_percent = User.percentChange(camera_angle, arm_angle)
         return relative_pos_percent, relative_angle_percent
 
-    # def updateTargets(self, id):
-    #     absPosList = [x.absPos for x in self.all_targets[id]]
-    #     posList = []
-    #     orientList = []
-    #     for x in absPosList:
-    #         posList.append(x[0])
-    #         orientList.append(x[1])
-    #     pos = User.averagePerValManyList(posList)
-    #     orient = User.averagePerValManyList(orientList)
-    #     self.targets[id].absPos = (pos, orient)
-    #     print(f"{sum(pos)=} {sum(self.targets[id].absPos[0])=}")
-    #     print(abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))))
-    #     if (abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))) <= 0.5):
-    #         print("infavour of collective")
-    #         self.targets[id].absPos = (pos, orient)
-    #     else:
-    #         print("drastic shift")
-    #         self.all_targets = {0:[],1:[]}
-    #         self.all_targets[id].append(self.targets[id])
-
     def setTargets3D(self, tags, global_poses):
         for t in tags:
             t.absPos = User.Solvo(global_poses, t.center)
             # self.all_targets[t.id].append(t)
+            print(t.id)
             self.targets[t.id] = t
             # if len(self.all_targets[t.id]) > 1:
             #     self.updateTargets(t.id)
@@ -258,48 +239,49 @@ class User:
     class Search:
         Mode = 0
         Val = 2
-        num_points = 8
-        points = []
-        def rotate(x, y, r):
-            rx = (x*math.cos(r)) - (y*math.sin(r))
-            ry = (y*math.cos(r)) + (x*math.sin(r))
-            return (rx, ry)
-
-        def point_ring(center, point_num):
-            radius = User.Search.Val/16
-            arc = (2 * math.pi) / User.Search.num_points # what is the angle between two of the points
-            if len(User.Search.points) <= point_num:
-                (px,py) = User.Search.rotate(0, radius, arc * point_num)
-                px += center[0]
-                py += center[1]
-            return (px,py)
+        # num_points = 8
+        # points = []
+        # def rotate(x, y, r):
+        #     rx = (x*math.cos(r)) - (y*math.sin(r))
+        #     ry = (y*math.cos(r)) + (x*math.sin(r))
+        #     return (rx, ry)
+        #
+        # def point_ring(center, point_num):
+        #     radius = User.Search.Val/16
+        #     arc = (2 * math.pi) / User.Search.num_points # what is the angle between two of the points
+        #     if len(User.Search.points) <= point_num:
+        #         (px,py) = User.Search.rotate(0, radius, arc * point_num)
+        #         px += center[0]
+        #         py += center[1]
+        #     return (px,py)
+        #
+        # def search_movement(user, coordinates=None):
+        #     if coordinates is None:
+        #         coordinates=user.roam_default
+        #     pos, orient = coordinates
+        #     x, y = User.Search.point_ring(pos, User.Search.Mode)
+        #     pos = x,y,pos[2]
+        #     User.Search.Mode = (User.Search.Mode + 1)%User.Search.num_points
+        #     p.loadURDF("./sphereRR.urdf", basePosition = pos)
+        #     print("HIHIHIHIHIHIHIHIHIHIHIHIHIHIHI")
+        #     # p.loadURDF(f"./sphere{['R','G','B'][User.Search.Mode%3]}.urdf", basePosition = pos)
+        #     return pos, orient
 
         def search_movement(user, coordinates=None):
             if coordinates is None:
                 coordinates=user.roam_default
             pos, orient = coordinates
-            x, y = User.Search.point_ring(pos, User.Search.Mode)
-            pos = x,y,pos[2]
-            User.Search.Mode = (User.Search.Mode + 1)%User.Search.num_points
-            p.loadURDF("./sphereRR.urdf", basePosition = pos)
-            print("HIHIHIHIHIHIHIHIHIHIHIHIHIHIHI")
-            # p.loadURDF(f"./sphere{['R','G','B'][User.Search.Mode%3]}.urdf", basePosition = pos)
+            x, y = User.Search.get_XY()
+            pos = (pos[0]+x/4, pos[1]+y/4, pos[2])
+            User.Search.Mode = (User.Search.Mode + 1)%4
             return pos, orient
 
-        # def search_movement(user, coordinates=None):
-        #     if coordinates is None:
-        #         coordinates=user.roam_default
-        #     pos, orient = coordinates
-        #     x, y = User.Search.get_XY()
-        #     pos = (pos[0]+x, pos[1]+y, pos[2])
-        #     User.Search.Mode = (User.Search.Mode + 1)%4
-        #     return pos, orient
-        #
-        # def get_XY():
-        #     modes = [(0, User.Search.Val), (User.Search.Val,0), (0, -User.Search.Val), (-User.Search.Val, 0)]
-        #     if User.Search.Mode == 0:
-        #         User.Search.Val += 4
-        #     return modes[User.Search.Mode]
+        def get_XY():
+            modes = [(-User.Search.Val, User.Search.Val), (User.Search.Val,User.Search.Val), (-User.Search.Val, User.Search.Val), (-User.Search.Val, -User.Search.Val)]
+            # modes = [(0, User.Search.Val), (User.Search.Val,0), (0, -User.Search.Val), (-User.Search.Val, 0)]
+            if User.Search.Mode == 0:
+                User.Search.Val += 4
+            return modes[User.Search.Mode]
 
     def single_target(self):
         target = list(self.targets.values())[0]
@@ -337,6 +319,7 @@ class User:
         (corners, ids, rejected) = cv2.aruco.detectMarkers(image, arucoDict, parameters=arucoParams)
         if not ids is None:
             ids = ids.tolist()[0]
+            print(ids)
         cv2.aruco.drawDetectedMarkers(image, corners)
         cv2.aruco.drawDetectedMarkers(image, rejected)
 
