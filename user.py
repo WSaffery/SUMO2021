@@ -26,15 +26,14 @@ print("matrix stuff")
 fmco=height/(2 * math.tan((100/2) * (math.pi / 180)))
 # fmco = 1 / math.tan((100/2)*(math.pi/180))
 # fmco = height / 2*math.tan((100/2)*(math.pi/180))
-matrix_coefficients = np.array([fmco,0,width/2,0,fmco,height/2,0,0,1]).reshape((3, 3))
+matrix_coefficients = np.array([[fmco,0,width/2],[0,fmco,height/2],[0,0,1]])
 distortion_coefficients = np.array([0.,0.,0.,0.,0.])
 
 print(distortion_coefficients)
 
 class Tag:
-    def __init__(self, center, rvec, id):
+    def __init__(self, center, id):
         self.center = center
-        self.rvec = rvec
         self.id = id
 
 class User:
@@ -155,15 +154,16 @@ class User:
         return rot_matrix
 
 
-    def Solvo(global_poses, x, y, z):
+    def Solvo(global_poses, pos):
         camera_pos, camera_angle = global_poses["camera_end_joint"]
         cam_rot_matrix = User.quaternion_rotation_matrix(camera_angle)
-        cam_pos_vector = np.array(camera_pos)
-        tag_pos_vector = np.array((x,y,z))
+        # cam_pos_vector = np.array(camera_pos)
+        # tag_pos_vector = np.array((x,y,z))
         # p.loadURDF("./sphereB.urdf", basePosition = (x,y,z))
-        print(f"{cam_pos_vector=} {np.matmul(cam_rot_matrix, tag_pos_vector)=}")
-        temp = np.matmul(cam_rot_matrix, tag_pos_vector)
-        absolute_point =  cam_pos_vector - temp
+        # print(f"{cam_pos_vector=} {np.matmul(cam_rot_matrix, tag_pos_vector)=}")
+        temp = np.matmul(cam_rot_matrix, pos)
+        print(f"{temp=}")
+        absolute_point = -temp + camera_pos
         arm_pos, arm_angle = global_poses["end_effector_joint"]
         # p.loadURDF("./sphereR.urdf", basePosition = absolute_point)
         proper_angle = arm_angle
@@ -190,30 +190,30 @@ class User:
         relative_angle_percent = User.percentChange(camera_angle, arm_angle)
         return relative_pos_percent, relative_angle_percent
 
-    def updateTargets(self, id):
-        absPosList = [x.absPos for x in self.all_targets[id]]
-        posList = []
-        orientList = []
-        for x in absPosList:
-            posList.append(x[0])
-            orientList.append(x[1])
-        pos = User.averagePerValManyList(posList)
-        orient = User.averagePerValManyList(orientList)
-        self.targets[id].absPos = (pos, orient)
-        # print(f"{sum(pos)=} {sum(self.targets[id].absPos[0])=}")
-        # print(abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))))
-        # if (abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))) <= 0.5):
-        #     print("infavour of collective")
-        #     self.targets[id].absPos = (pos, orient)
-        # else:
-        #     print("drastic shift")
-        #     self.all_targets = {0:[],1:[]}
-        #     self.all_targets[id].append(self.targets[id])
+    # def updateTargets(self, id):
+    #     absPosList = [x.absPos for x in self.all_targets[id]]
+    #     posList = []
+    #     orientList = []
+    #     for x in absPosList:
+    #         posList.append(x[0])
+    #         orientList.append(x[1])
+    #     pos = User.averagePerValManyList(posList)
+    #     orient = User.averagePerValManyList(orientList)
+    #     self.targets[id].absPos = (pos, orient)
+    #     print(f"{sum(pos)=} {sum(self.targets[id].absPos[0])=}")
+    #     print(abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))))
+    #     if (abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))) <= 0.5):
+    #         print("infavour of collective")
+    #         self.targets[id].absPos = (pos, orient)
+    #     else:
+    #         print("drastic shift")
+    #         self.all_targets = {0:[],1:[]}
+    #         self.all_targets[id].append(self.targets[id])
 
     def setTargets3D(self, tags, global_poses):
         for t in tags:
-            t.absPos = User.Solvo(global_poses, *t.center)
-            self.all_targets[t.id].append(t)
+            t.absPos = User.Solvo(global_poses, t.center)
+            # self.all_targets[t.id].append(t)
             self.targets[t.id] = t
             # if len(self.all_targets[t.id]) > 1:
             #     self.updateTargets(t.id)
@@ -302,7 +302,7 @@ class User:
         #     return modes[User.Search.Mode]
 
     def single_target(self):
-        target = self.targets[0]
+        target = list(self.targets.values())[0]
         pos, orient = target.absPos
         if target.id == 1:
             pos[0] -= 0.3
@@ -341,10 +341,10 @@ class User:
         cv2.aruco.drawDetectedMarkers(image, rejected)
 
         tags = []
-        if corners and not ids is None:
+        if corners:
             for tag,id in zip(corners, ids):
-                rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[0], 0.06, matrix_coefficients, distortion_coefficients)
-                tags.append(Tag(User.toProperList(tvec), rvec, id))
+                rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(tag, 0.06, matrix_coefficients, distCoeffs=None)
+                tags.append(Tag(tvec[0][0], id))
                 cv2.aruco.drawAxis(image, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
 
 
@@ -355,26 +355,26 @@ class User:
             self.locking = True
             print(f"Moving guided 2x to {self.target_pos=} {self.target_orient=}")
             old = {k:v for k,v in self.pose.items()}
-            val = 50
+            # val = 50
             self.updateProp(2, self.target_pos)
-            if self.lockedin == 0:
-                self.pose = calcIK(self.target_pos, self.target_orient)
-                compare = True
-                for k in old.keys():
-                    if round(old[k],3) != round(self.pose[k],3):
-                        compare = False
-                        break
-                if compare:
-                    self.lockedin = val
-                    self.target_pos[2] -= 0.2
-                    self.pose = calcIK(self.target_pos, self.target_orient)
-            else:
-                self.all_targets = {0:[],1:[]}
-                x, y, z = global_poses["end_effector_joint"][0]
-                z -= 0.2
-                print(f"Move down {(x,y,x)=}")
-                self.pose = calcIK((x,y,z),  p.getQuaternionFromEuler([0,math.pi/2,0]))
-                self.lockedin -= 1
+            # if self.lockedin == 0:
+            self.pose = calcIK(self.target_pos, self.target_orient)
+            # compare = True
+            # for k in old.keys():
+            #     if round(old[k],3) != round(self.pose[k],3):
+            #         compare = False
+            #         break
+            # if compare:
+            #     self.lockedin = val
+            #     self.target_pos[2] -= 0.2
+            #     self.pose = calcIK(self.target_pos, self.target_orient)
+            # else: CAN YOU HEAR ME
+            #     self.all_targets = {0:[],1:[]}
+            #     x, y, z = global_poses["end_effector_joint"][0]
+            #     z -= 0.2
+            #     print(f"Move down {(x,y,x)=}")
+            #     self.pose = calcIK((x,y,z),  p.getQuaternionFromEuler([0,math.pi/2,0]))
+            #     self.lockedin -= 1
 
         elif len(self.targets) == 1 and self.moving < 5:
             print(f"Moving guided 1x to {self.target_pos=} {self.target_orient=}")
@@ -383,11 +383,11 @@ class User:
             if (self.moving > 5):
                 self.locking = False
         elif not self.locking:
-            # pos, orient = User.Search.search_movement(self, self.single_target())
-            if len(self.targets) == 1:
-                pos, orient = User.Search.search_movement(self, self.single_target())
-            else:
-                pos, orient = User.Search.search_movement(self)
+            pos, orient = User.Search.search_movement(self)
+            # if len(self.targets) == 1:
+            #     pos, orient = User.Search.search_movement(self, self.single_target())
+            # else:
+            #     pos, orient = User.Search.search_movement(self)
             print(f"Moving unguided search to {pos=} {orient=}")
             self.pose = calcIK(pos, orient)
             time.sleep(0.2)
