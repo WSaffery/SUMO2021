@@ -209,7 +209,8 @@ class User:
             self.targets[id].absPos = (pos, orient)
         else:
             print("drastic shift")
-            self.all_targets = {}
+            self.all_targets = {0:[],1:[]}
+            self.all_targets[id].append(self.targets[id])
 
     def setTargets3D(self, tags, global_poses):
         for t in tags:
