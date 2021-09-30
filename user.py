@@ -33,7 +33,7 @@ class User:
         self.last_time = time.time()
         self.vec = [0,0,0]
         self.quat = [0,0,0,0]
-        self.roam_default = (np.array([0.6, 0, 1]), p.getQuaternionFromEuler([0,math.pi/2,0]))
+        self.roam_default = (np.array([0.6, 0, 7]), p.getQuaternionFromEuler([0,math.pi/2,0]))
         self.targets = {}
         self.visualProps = {}
         self.state = RoboStates.Searching
@@ -121,7 +121,7 @@ class User:
             pos = (pos[0]+x, pos[1]+y, pos[2])
             self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
             self.setPose(calcIK, pos, orient)
-            time.sleep(0.01)
+            time.sleep(0.15)
 
         if self.state == RoboStates.Located_1:
             target_id, target_pos = list(self.targets.items())[0]
