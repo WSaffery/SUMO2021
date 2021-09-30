@@ -33,7 +33,7 @@ class User:
         self.last_time = time.time()
         self.vec = [0,0,0]
         self.quat = [0,0,0,0]
-        self.roam_default = (np.array([1.4, 0, 1.2]), p.getQuaternionFromEuler([0,math.pi/2,0]))
+        self.roam_default = (np.array([0.6, 0, 1]), p.getQuaternionFromEuler([0,math.pi/2,0]))
         self.targets = {}
         self.visualProps = {}
         self.state = RoboStates.Searching
