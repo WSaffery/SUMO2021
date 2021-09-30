@@ -59,8 +59,10 @@ class User:
         self.moving = 0
         self.default = [(0.5211272239685059, 8.080899533524644e-06, 0.22556839883327484), (0.0001061355578713119, 0.5224985480308533, -1.2371250704745762e-05, 0.8526401519775391)]
         # self.roam_default = (np.array([0.5, 0, 0.5]), p.getQuaternionFromEuler([0,math.pi/2,0]))
-        self.roam_default = (np.array([1.2, 0, 0.8]), p.getQuaternionFromEuler([0,math.pi/2,0]))
+        self.roam_default = (np.array([1.4, 0, 1.2]), p.getQuaternionFromEuler([0,math.pi/2,0]))
         self.roam = self.roam_default
+        self.locked = 0
+        self.mode = 0
         return
 
     def manual_control(self, global_poses, calcIK):
@@ -114,14 +116,61 @@ class User:
         to_z = current_z + z*0.1
         return np.array([to_x,to_y,to_z])
 
+    def quaternion_rotation_matrix(Q):
+        # Extract the values from Q
+        q0 = Q[0]
+        q1 = Q[1]
+        q2 = Q[2]
+        q3 = Q[3]
+
+        # First row of the rotation matrix
+        r00 = 2 * (q0 * q0 + q1 * q1) - 1
+        r01 = 2 * (q1 * q2 - q0 * q3)
+        r02 = 2 * (q1 * q3 + q0 * q2)
+
+        # Second row of the rotation matrix
+        r10 = 2 * (q1 * q2 + q0 * q3)
+        r11 = 2 * (q0 * q0 + q2 * q2) - 1
+        r12 = 2 * (q2 * q3 - q0 * q1)
+
+        # Third row of the rotation matrix
+        r20 = 2 * (q1 * q3 - q0 * q2)
+        r21 = 2 * (q2 * q3 + q0 * q1)
+        r22 = 2 * (q0 * q0 + q3 * q3) - 1
+
+        # 3x3 rotation matrix
+        rot_matrix = np.array([[r00, r01, r02],
+                               [r10, r11, r12],
+                               [r20, r21, r22]])
+        return rot_matrix
+
+
+    # def Solvo(global_poses, x, y, z):
+    #     # default_camera_pos = (0.4393743574619293, -0.051950227469205856, 0.4152250289916992)
+    #     camera_pos, camera_angle = global_poses["camera_end_joint"]
+    #     cam_rot_matrix = quaternion_rotation_matrix(camera_angle)
+    #     cam_pos_vector = np.array(camera_pos)
+    #     tag_pos_vector = np.array((x,y,z))
+    #     arm_pos, arm_angle = global_poses["end_effector_joint"]
+    #     relative_pos_percent = User.percentChange(arm_pos, camera_pos)
+    #     # relative_angle_percent = User.percentChange(arm_angl, camera_angle)
+    #     relative_pos = [a+b for a,b in zip(camera_pos, (x,y,z))]
+    #     proper_pos = User.percentApply(relative_pos, relative_pos_percent)
+    #     proper_angle = arm_angle
+    #     return np.array(proper_pos), proper_angle
+
     def Solvo(global_poses, x, y, z):
         # default_camera_pos = (0.4393743574619293, -0.051950227469205856, 0.4152250289916992)
         camera_pos, camera_angle = global_poses["camera_end_joint"]
+        cam_rot_matrix = User.quaternion_rotation_matrix(camera_angle)
+        cam_pos_vector = np.array(camera_pos)
+        tag_pos_vector = np.array((x,y,z))
+        absolute_point = np.matmul(cam_rot_matrix, tag_pos_vector) + cam_pos_vector
         arm_pos, arm_angle = global_poses["end_effector_joint"]
         relative_pos_percent = User.percentChange(arm_pos, camera_pos)
         # relative_angle_percent = User.percentChange(arm_angl, camera_angle)
-        relative_pos = [a+b for a,b in zip(camera_pos, (x,y,z))]
-        proper_pos = User.percentApply(relative_pos, relative_pos_percent)
+        # relative_pos = [a+b for a,b in zip(camera_pos, (x,y,z))]
+        proper_pos = User.percentApply(absolute_point, relative_pos_percent)
         proper_angle = arm_angle
         return np.array(proper_pos), proper_angle
 
@@ -139,30 +188,62 @@ class User:
         relative_angle_percent = User.percentChange(camera_angle, arm_angle)
         return relative_pos_percent, relative_angle_percent
 
+    def singleTargetAlgo(single_pos, id):
+        offset = 0.2
+        signed_offset = -1*offset if id == 1 else offset
+        return (single_pos[0] + signed_offset, single_pos[1], single_pos[2])
+
     def setTargets3D(self, tags, global_poses):
         for t in tags:
             t.absPos = User.Solvo(global_poses, *t.center)
             self.targets[t.id] = t
 
         if len(self.targets) == 2:
+            print("Two spotted")
             if self.targets[0].absPos[1] == self.targets[1].absPos[1]:
+                print("Same orientation spot")
                 self.target_pos = User.averagePerVal(self.targets[0].absPos[0], self.targets[1].absPos[0])
                 self.target_orient = self.targets[0].absPos[1]
+                print(f"{self.targets[0].absPos[0]=},{self.targets[1].absPos[0]=}")
             else:
-                # To be updated to take into account the impact of angles
+                # To be updated to take into account the impact of angles more accurately
+                print("Patchwork spot")
                 self.target_pos = User.averagePerVal(self.targets[0].absPos[0], self.targets[1].absPos[0])
-                self.target_orient =  User.averagePerVal(self.targets[0].absPos[1], self.targets[1].absPos[1])
+                self.target_orient = self.targets[0].absPos[1]
+                # self.target_orient =  User.averagePerVal(self.targets[0].absPos[1], self.targets[1].absPos[1])
+                print(f"{self.targets[0].absPos[0]=},{self.targets[1].absPos[0]=}")
+                print(f"{self.targets[0].absPos[1]=},{self.targets[1].absPos[1]=}")
         else:
             tag = tags[0]
-            id = tag.id
             self.target_pos = tag.absPos[0]
             self.target_orient = tag.absPos[1]
         # print(f"set targets {self.target_x=} {self.target_y=} {self.target_z=}")
+
+    def modedPos(self, arm_pos):
+        moded_pos = [x for x in arm_pos]
+        moded_pos[self.mode] = self.target_pos[self.mode]
+        return moded_pos
+
+    def updateMode(self):
+        self.mode = (self.mode + 1)%3
 
     def toProperList(tvec):
         out = tvec.tolist()[0][0]
         # print(out)
         return out
+
+    class Search:
+        Mode = 0
+        def search_movement(user):
+            pos, orient = user.roam_default
+            x, y = User.Search.get_XY()
+            pos = (pos[0]+x, pos[1]+y, pos[2])
+            User.Search.Mode = (User.Search.Mode + 1)%4
+            return pos, orient
+
+        def get_XY():
+            modes = [(0, 1), (1,0), (0, -1), (-1, 0)]
+            return modes[User.Search.Mode]
 
     def run(self,
             image: list,
@@ -213,33 +294,46 @@ class User:
         # print(f"{tags=}")
         if tags:
             self.setTargets3D(tags, global_poses)
-            print(f"Moving guided to {self.target_pos=} {self.target_orient=}")
+
+        if len(self.targets) == 2:
+            print(f"Moving guided 2x to {self.target_pos=} {self.target_orient=}")
+            # moded_pos = self.modedPos(global_poses["end_effector_joint"][0])
+            # self.updateMode()
+            old = [x for x in self.pose]
             self.pose = calcIK(self.target_pos, self.target_orient)
+            if old == self.pose:
+                print("moving down")
+                self.target_pos[2] -= 0.1
+                self.pose = calcIK(self.target_pos, self.target_orient)
             # self.pose = calcIK(self.target_pos, global_poses['camera_end_joint'][1])
             # self.moveTo3D(calcIK, self.target_x, self.target_y, self.target_z)
             self.locking = True
-        elif not self.locking:
-            # print(f"hello {global_poses['end_effector_joint']}")
-            pos, orient = self.roam
-            print(f"Moving at random to {pos=}")
-            self.pose = calcIK(pos, orient)
-            # self.pose = self.default
-            pos = [pos[0]+(random()-0.5)*0.5, pos[1]+(random()-0.5)*0.5, pos[2]]
-            # pos = [x+(random.random()-0.5)*0.5 for x in pos]
-            # orient = [x+(random()-random())*2 for x in orient]
-            self.roam = [pos,orient]
-            self.moving -= 1
-            if (self.moving == 0):
-                self.moving = 5
-                self.roam = self.roam_default
-        elif not self.target_pos is None and not self.target_orient is None:
-            print(f"continuing without sight to {self.target_pos=} {self.target_orient=}")
+        elif len(self.targets) == 1 and self.moving < 5:
+            self.target_pos = User.singleTargetAlgo(self.target_pos, list(self.targets.values())[0].id)
+            print(f"Moving guided 1x to {self.target_pos=} {self.target_orient=}")
             self.pose = calcIK(self.target_pos, self.target_orient)
-            # self.pose = calcIK(self.target_pos, global_poses['camera_end_joint'][1])
-            # self.moveTo3D(calcIK, self.target_x, self.target_y, self.target_z)
             self.moving += 1
-            if (self.moving > 20):
+            if (self.moving > 5):
                 self.locking = False
+        elif not self.locking:
+            pos, orient = User.Search.search_movement(self)
+            if self.locked%2:
+                self.pose = calcIK(pos, orient)
+            # # print(f"hello {global_poses['end_effector_joint']}")
+            # pos, orient = self.roam
+            # print(f"Moving at random to {pos=}")
+            # self.pose = calcIK(pos, orient)
+            # # self.pose = self.default
+            # if self.locked%2:
+            #     pos = [pos[0]+(random()-0.5)*0.5, pos[1]+(random()-0.5)*0.5, pos[2]]
+            # # pos = [x+(random.random()-0.5)*0.5 for x in pos]
+            # # orient = [x+(random()-random())*2 for x in orient]
+            # self.roam = [pos,orient]
+            self.locked += 1
+            if (self.locked == 5):
+                self.locked = 0
+                self.roam = self.roam_default
+
 
         # end info output
 
