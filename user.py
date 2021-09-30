@@ -67,7 +67,15 @@ class User:
         self.locked = 0
         self.mode = 0
         self.lockedin = 0
+        self.visualProps = {}
         return
+
+    def updateProp(self, name, vec3):
+        colour = "R" if name else "G"
+        if name in self.visualProps:
+            p.resetBasePositionAndOrientation(self.visualProps[name], vec3, p.getQuaternionFromEuler([0,math.pi, 0]))
+        else:
+            self.visualProps[name]: int = p.loadURDF(f"./sphere{colour}.urdf", basePosition = vec3)
 
     def manual_control(self, global_poses, calcIK):
         lineIn = input("input command: ")
@@ -169,7 +177,7 @@ class User:
         print(f"{cam_pos_vector=} {np.matmul(cam_rot_matrix, tag_pos_vector)=}")
         absolute_point =  cam_pos_vector - np.matmul(cam_rot_matrix, tag_pos_vector)
         arm_pos, arm_angle = global_poses["end_effector_joint"]
-        p.loadURDF("./sphereR.urdf", basePosition = absolute_point)
+        # p.loadURDF("./sphereR.urdf", basePosition = absolute_point)
         proper_angle = arm_angle
         return np.array(absolute_point), proper_angle
 
@@ -228,6 +236,8 @@ class User:
                 self.updateTargets(t.id)
 
         if len(self.targets) == 2:
+            self.updateProp(0, self.targets[0].absPos[0])
+            self.updateProp(1, self.targets[1].absPos[0])
             print("Two spotted")
             if self.targets[0].absPos[1] == self.targets[1].absPos[1]:
                 print("Same orientation spot")
@@ -244,6 +254,7 @@ class User:
                 print(f"{self.targets[1].absPos[1]=},{self.targets[1].absPos[1]=}")
         else:
             tag = tags[0]
+            self.updateProp(tag.id, tag.absPos[0])
             self.target_pos = tag.absPos[0]
             self.target_orient = tag.absPos[1]
         # print(f"set targets {self.target_x=} {self.target_y=} {self.target_z=}")
@@ -363,6 +374,7 @@ class User:
                 # self.target_pos[1] *= (1+Ycent)*amount
                 # self.target_pos[1] += 0.1
                 self.target_pos[2] -= self.lockedin/val*2.7
+                self.target_orient = None
                 # self.target_pos[2] -= 0.3
                 # self.target_pos, self.target_orient = User.Solvo(global_poses, 1.2, 1.2, -1)
                 # self.pose = calcIK(self.target_pos, self.target_orient)
