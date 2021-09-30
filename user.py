@@ -165,7 +165,7 @@ class User:
         cam_rot_matrix = User.quaternion_rotation_matrix(camera_angle)
         cam_pos_vector = np.array(camera_pos)
         tag_pos_vector = np.array((x,y,z))
-        p.loadURDF("./sphereB.urdf", basePosition = (x,y,z))
+        # p.loadURDF("./sphereB.urdf", basePosition = (x,y,z))
         print(f"{cam_pos_vector=} {np.matmul(cam_rot_matrix, tag_pos_vector)=}")
         absolute_point =  cam_pos_vector - np.matmul(cam_rot_matrix, tag_pos_vector)
         arm_pos, arm_angle = global_poses["end_effector_joint"]
@@ -352,20 +352,20 @@ class User:
                     self.target_pos[2] -= 0.1
                     self.pose = calcIK(self.target_pos, self.target_orient)
             else:
-                pos, orient = User.Search.search_movement(self, (self.target_pos, self.target_orient))
-                print(f"Moving to search for more images {pos=} {orient=}")
-                self.pose = calcIK(pos, orient)
+                # pos, orient = User.Search.search_movement(self, (self.target_pos, self.target_orient))
+                # print(f"Moving to search for more images {pos=} {orient=}")
+                # self.pose = calcIK(pos, orient)
                 # Xcent = abs(self.target_pos[0])/sum([abs(x) for x in self.target_pos[0:2]])
                 # Ycent = 1-Xcent
                 # # amount = 1.95-(self.lockedin/val)
                 # amount = 0.95
                 # self.target_pos[0] *= (1+Xcent)*amount
                 # self.target_pos[1] *= (1+Ycent)*amount
-                # # self.target_pos[1] += 0.1
-                # self.target_pos[2] -= self.lockedin/val*2.7
-                # # self.target_pos[2] -= 0.3
-                # # self.target_pos, self.target_orient = User.Solvo(global_poses, 1.2, 1.2, -1)
-                # # self.pose = calcIK(self.target_pos, self.target_orient)
+                # self.target_pos[1] += 0.1
+                self.target_pos[2] -= self.lockedin/val*2.7
+                # self.target_pos[2] -= 0.3
+                # self.target_pos, self.target_orient = User.Solvo(global_poses, 1.2, 1.2, -1)
+                # self.pose = calcIK(self.target_pos, self.target_orient)
                 self.lockedin -= 1
 
         elif len(self.targets) == 1 and self.moving < 5:
