@@ -6,7 +6,7 @@ from typing import Callable, Optional
 import numpy as np
 import cv2
 from enum import Enum
-import pybullet as p
+from _3DViz import updateProp
 
 height = 480
 width = 640
@@ -35,17 +35,7 @@ class User:
         self.targetLastUpdate = {}
         self.state = RoboStates.Searching
         self.grabTarget = []
-        self.visualProps = {}
         return
-
-    def updateProp(self, name, vec3):
-        if use3D:
-            colours = ["R", "G", "B"]
-            colour = colours[name]
-            if name in self.visualProps:
-                p.resetBasePositionAndOrientation(self.visualProps[name], vec3, p.getQuaternionFromEuler([0,math.pi, 0]))
-            else:
-                self.visualProps[name]: int = p.loadURDF(f"./sphere{colour}.urdf", basePosition = vec3)
 
     def quaternionRotationMatrix(self, Q): # compressed jay's implementation
         return np.array([[2 * (Q[0] * Q[0] + Q[1] * Q[1]) - 1, 2 * (Q[1] * Q[2] - Q[0] * Q[3]), 2 * (Q[1] * Q[3] + Q[0] * Q[2])],
@@ -72,7 +62,7 @@ class User:
                 rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(tag, 0.06, matrix_coefficients, distCoeffs=None)
                 self.targets[id[0]] = self.inverseCameraProjection(global_poses["camera_end_joint"][0], global_poses["camera_end_joint"][1], tvec[0][0])
                 self.targetLastUpdate[id[0]] = time.time()
-                self.updateProp(id[0], self.targets[id[0]])
+                updateProp(id[0], self.targets[id[0]], use3D)
                 tags.append([tvec[0][0], id[0]])
                 cv2.aruco.drawAxis(image, matrix_coefficients, None, rvec, tvec, 0.03)
 
@@ -87,7 +77,7 @@ class User:
 
         if self.state == RoboStates.Searching:
             on_line_pos = np.array([0.65, 0.15, -0.05]) + math.sin(time.time()) * np.array([0.3, 0.3, 0])
-            self.setPose(calcIK, on_line_pos, p.getQuaternionFromEuler([0, math.pi/2, 0]))
+            self.setPose(calcIK, on_line_pos, [0, np.sqrt(1/2), 0, np.sqrt(1/2)])
 
         if self.state == RoboStates.Located_1:
             if 0 in self.targets and ((time.time()-self.targetLastUpdate[0])>0.3):
