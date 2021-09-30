@@ -114,12 +114,12 @@ class User:
 
         if self.state == RoboStates.Searching:
             pos, orient = self.roam_default
-            modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
-            if self.searchState["Mode"] == 0:
-                self.searchState["Val"] += 0.1
+            modes = [(-self.searchState["Val"], self.searchState["Val"]), (self.searchState["Val"],self.searchState["Val"]), (self.searchState["Val"], -self.searchState["Val"]), (-self.searchState["Val"], -self.searchState["Val"])]
             x, y =  modes[self.searchState["Mode"]]
             pos = (pos[0]+x, pos[1]+y, pos[2])
             self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
+            if self.searchState["Mode"] == 0:
+                self.searchState["Val"] += 0.1
             self.setPose(calcIK, pos, orient)
             time.sleep(0.15)
 
