@@ -55,6 +55,7 @@ class User:
         self.last_time = time.time()
         self.locking = False
         self.target_pos = self.target_orient = None
+        self.all_targets = {0:[], 1:[]}
         self.targets = {}
         self.moving = 0
         self.default = [(0.5211272239685059, 8.080899533524644e-06, 0.22556839883327484), (0.0001061355578713119, 0.5224985480308533, -1.2371250704745762e-05, 0.8526401519775391)]
@@ -63,6 +64,7 @@ class User:
         self.roam = self.roam_default
         self.locked = 0
         self.mode = 0
+        self.lockedin = 0
         return
 
     def manual_control(self, global_poses, calcIK):
@@ -98,8 +100,18 @@ class User:
         elif command == "end":
             global_poses['end_effector_joint'] = args[0]
 
+    def TargetsLen(targets):
+        return min(1,len(targets[0])) + min(1,len(targets[1]))
+
     def averagePerVal(listA, listB):
         return  [(a+b)/2 for a,b in zip(listA, listB)]
+
+    def averagePerValManyList(lists):
+        # print(lists)
+        # print({*lists})
+        # print(list(zip(*lists)))
+        # print(list(zip(*(lists[0])))})
+        return  [sum(x)/len(x) for x in zip(*(lists))]
 
     def percentChange(listA, listB):
         return [1 + (a - b)/b for a,b in zip(listA, listB)]
@@ -145,20 +157,6 @@ class User:
         return rot_matrix
 
 
-    # def Solvo(global_poses, x, y, z):
-    #     # default_camera_pos = (0.4393743574619293, -0.051950227469205856, 0.4152250289916992)
-    #     camera_pos, camera_angle = global_poses["camera_end_joint"]
-    #     cam_rot_matrix = quaternion_rotation_matrix(camera_angle)
-    #     cam_pos_vector = np.array(camera_pos)
-    #     tag_pos_vector = np.array((x,y,z))
-    #     arm_pos, arm_angle = global_poses["end_effector_joint"]
-    #     relative_pos_percent = User.percentChange(arm_pos, camera_pos)
-    #     # relative_angle_percent = User.percentChange(arm_angl, camera_angle)
-    #     relative_pos = [a+b for a,b in zip(camera_pos, (x,y,z))]
-    #     proper_pos = User.percentApply(relative_pos, relative_pos_percent)
-    #     proper_angle = arm_angle
-    #     return np.array(proper_pos), proper_angle
-
     def Solvo(global_poses, x, y, z):
         # default_camera_pos = (0.4393743574619293, -0.051950227469205856, 0.4152250289916992)
         camera_pos, camera_angle = global_poses["camera_end_joint"]
@@ -193,10 +191,26 @@ class User:
         signed_offset = -1*offset if id == 1 else offset
         return (single_pos[0] + signed_offset, single_pos[1], single_pos[2])
 
+    def updateTargets(self, id):
+        absPosList = [x.absPos for x in self.all_targets[id]]
+        posList = []
+        orientList = []
+        for x in absPosList:
+            posList.append(x[0])
+            orientList.append(x[1])
+        pos = User.averagePerValManyList(posList)
+        orient = User.averagePerValManyList(orientList)
+        if (abs((sum(pos)-sum(self.targets[id].absPos[0])/len(pos))) <= 0.1):
+            print("infavour of collective")
+            self.targets[id].absPos = (pos, orient)
+
     def setTargets3D(self, tags, global_poses):
         for t in tags:
             t.absPos = User.Solvo(global_poses, *t.center)
+            self.all_targets[t.id].append(t)
             self.targets[t.id] = t
+            if len(self.all_targets[t.id]) > 1:
+                self.updateTargets(t.id)
 
         if len(self.targets) == 2:
             print("Two spotted")
@@ -234,6 +248,7 @@ class User:
 
     class Search:
         Mode = 0
+        Val = 2
         def search_movement(user):
             pos, orient = user.roam_default
             x, y = User.Search.get_XY()
@@ -242,8 +257,9 @@ class User:
             return pos, orient
 
         def get_XY():
-            val = 2
-            modes = [(0, val), (val,0), (0, -val), (-val, 0)]
+            modes = [(0, User.Search.Val), (User.Search.Val,0), (0, -User.Search.Val), (-User.Search.Val, 0)]
+            if User.Search.Mode == 0:
+                User.Search.Val += 4
             return modes[User.Search.Mode]
 
     def run(self,
@@ -297,25 +313,41 @@ class User:
             self.setTargets3D(tags, global_poses)
 
         if len(self.targets) == 2:
+            self.locking = True
             print(f"Moving guided 2x to {self.target_pos=} {self.target_orient=}")
             # moded_pos = self.modedPos(global_poses["end_effector_joint"][0])
             # self.updateMode()
             old = {k:v for k,v in self.pose.items()}
-            print(f"{old=}")
-            self.pose = calcIK(self.target_pos, self.target_orient)
-            print(f"comparing {old=}, {self.pose=}")
-            compare = True
-            for k in old.keys():
-                if old[k] != self.pose[k]:
-                    compare = False
-                    break
-            if compare:
-                print("moving down")
-                self.target_pos[2] -= 0.1
+            # print(f"{old=}")
+            val = 40
+            if self.lockedin == 0:
                 self.pose = calcIK(self.target_pos, self.target_orient)
-            # self.pose = calcIK(self.target_pos, global_poses['camera_end_joint'][1])
-            # self.moveTo3D(calcIK, self.target_x, self.target_y, self.target_z)
-            self.locking = True
+                # print(f"comparing {old=}, {self.pose=}"
+                compare = True
+                for k in old.keys():
+                    if round(old[k],3) != round(self.pose[k],3):
+                        compare = False
+                        break
+                if compare:
+                    self.lockedin = val
+                    self.target_pos[0] += 0.1
+                    # self.target_pos[1] += 0.1
+                    self.target_pos[2] -= 0.1
+                    self.pose = calcIK(self.target_pos, self.target_orient)
+            else:
+                Xcent = abs(self.target_pos[0])/sum([abs(x) for x in self.target_pos[0:2]])
+                Ycent = 1-Xcent
+                # amount = 1.95-(self.lockedin/val)
+                amount = 0.95
+                self.target_pos[0] *= (1+Xcent)*amount
+                self.target_pos[1] *= (1+Ycent)*amount
+                # self.target_pos[1] += 0.1
+                self.target_pos[2] -= self.lockedin/val*2.7
+                # self.target_pos[2] -= 0.3
+                # self.target_pos, self.target_orient = User.Solvo(global_poses, 1.2, 1.2, -1)
+                # self.pose = calcIK(self.target_pos, self.target_orient)
+                self.lockedin -= 1
+
         elif len(self.targets) == 1 and self.moving < 5:
             self.target_pos = User.singleTargetAlgo(self.target_pos, list(self.targets.values())[0].id)
             print(f"Moving guided 1x to {self.target_pos=} {self.target_orient=}")
@@ -324,9 +356,9 @@ class User:
             if (self.moving > 5):
                 self.locking = False
         elif not self.locking:
-            pos, orient = User.Search.search_movement(self)
-            print(f"Moving unguided search to {pos=} {orient=}")
             if self.locked%2:
+                pos, orient = User.Search.search_movement(self)
+                print(f"Moving unguided search to {pos=} {orient=}")
                 self.pose = calcIK(pos, orient)
             # # print(f"hello {global_poses['end_effector_joint']}")
             # pos, orient = self.roam
