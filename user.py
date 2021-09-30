@@ -7,6 +7,7 @@ import numpy as np
 import cv2
 from enum import Enum
 import pybullet as p
+# import asyncio
 
 height = 480
 width = 640
@@ -84,16 +85,6 @@ class User:
         self.quat = quat
         self.pose = calcIK(vec, quat)
 
-    def search_movement(self):
-        pos, orient = self.roam_default
-        modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
-        if self.searchState["Mode"] == 0:
-            self.searchState["Val"] += 4
-        x, y =  modes[self.searchState["Mode"]]
-        pos = (pos[0]+x, pos[1]+y, pos[2])
-        self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
-        return pos, orient
-
 
     def run(self, image: list,  global_poses: Dict[str, np.ndarray], calcIK: Callable[[np.ndarray, Optional[np.ndarray]], Dict[str, float]]) -> Dict[str, float]:
 
@@ -114,29 +105,55 @@ class User:
         image = cv2.putText(image, self.state.name, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
         # the actual machine
         #Hey buddy
-        if self.state == RoboStates.Searching:
-            self.setPose(calcIK, *self.search_movement())
-            time.sleep(0.2)
-            # self.setPose(calcIK, np.array([0.5, 0, 0.2]), p.getQuaternionFromEuler([0,math.sin(time.time())*0.8+math.pi/2,0]))
+
+        if tags:
             if (n_tags==1):
                 self.state = RoboStates.Located_1
             elif (n_tags==2):
                 self.state = RoboStates.Located_2
-            pass
-        if self.state == RoboStates.Located_1:
-            self.setPose(calcIK, *self.search_movement())
+
+        if self.state == RoboStates.Searching:
+            pos, orient = self.roam_default
+            modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
+            if self.searchState["Mode"] == 0:
+                self.searchState["Val"] += 4
+            x, y =  modes[self.searchState["Mode"]]
+            pos = (pos[0]+x, pos[1]+y, pos[2])
+            self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
+            self.setPose(calcIK, pos, orient)
             time.sleep(0.2)
-            # self.setPose(calcIK, np.array([0.5, 0, 0.2]), p.getQuaternionFromEuler([0,math.sin(time.time())*0.8+math.pi/2,0]))
-            if (n_tags==2):
-                self.state = RoboStates.Located_2
-            pass
+
+        if self.state == RoboStates.Located_1:
+            target_id, target_pos = list(self.targets.items())[0]
+            offset = -0.7 if target_id == 1 else 0.7
+            pos = (target_pos[0]+offset,target_pos[1],target_pos[2])
+            orient = self.roam_default[1]
+            modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
+            if self.searchState["Mode"] == 0:
+                self.searchState["Val"] += 4
+            x, y =  modes[self.searchState["Mode"]]
+            pos = (pos[0]+x, pos[1]+y, pos[2])
+            self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
+            self.setPose(calcIK, pos, orient)
+            time.sleep(0.2)
+
         if self.state == RoboStates.Located_2:
             self.grabTarget = (self.targets[0]+self.targets[1])/2
             self.state = RoboStates.Grabbing
-            pass
+
         if self.state == RoboStates.Grabbing:
+            # async def check():
+            old = {k:v for k,v in self.pose.items()}
             self.setPose(calcIK, self.grabTarget, p.getQuaternionFromEuler([0,math.pi/2,0]))
-            pass
+            compare = True
+            asyncio.run(main())
+            for k in old.keys():
+                if round(old[k],3) != round(self.pose[k],3):
+                    compare = False
+                    break
+            if not compare:
+                self.state = RoboStates.Searching
+
 
         cv2.imshow("View", image)
         cv2.waitKey(1)

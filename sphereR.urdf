@@ -3,7 +3,7 @@
   <link name="base_link">
     <visual>
       <geometry>
-        <sphere radius="0.002"/>
+        <sphere radius="0.02"/>
       </geometry>
       <material name="red">
             <color rgba="1 0 0 1"/>
