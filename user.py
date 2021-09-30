@@ -71,7 +71,8 @@ class User:
         return
 
     def updateProp(self, name, vec3):
-        colour = "R" if name else "G"
+        colours = ["R", "G", "B"]
+        colour = colours[name]
         if name in self.visualProps:
             p.resetBasePositionAndOrientation(self.visualProps[name], vec3, p.getQuaternionFromEuler([0,math.pi, 0]))
         else:
@@ -170,6 +171,7 @@ class User:
     def Solvo(global_poses, x, y, z):
         # default_camera_pos = (0.4393743574619293, -0.051950227469205856, 0.4152250289916992)
         camera_pos, camera_angle = global_poses["camera_end_joint"]
+        # cam_rot_matrix = np.array(p.getMatrixFromQuaternion(camera_angle)).reshape((3,3))
         cam_rot_matrix = User.quaternion_rotation_matrix(camera_angle)
         cam_pos_vector = np.array(camera_pos)
         tag_pos_vector = np.array((x,y,z))
@@ -184,7 +186,7 @@ class User:
     def simpleSolvo(global_poses, tvec):
         camera_pos, camera_angle = global_poses["camera_end_joint"]
         simplePos = camera_pos - tvec[0][0]
-        p.loadURDF("./sphereR.urdf", basePosition = simplePos)
+        # p.loadURDF("./sphereR.urdf", basePosition = simplePos)
         return simplePos
 
 
@@ -312,7 +314,7 @@ class User:
             position (vec3) and an orientation (quaternion) and it will return a pose
             dictionary of joint angles to approximate the pose.
         """
-        global_orients = [v[1] for v in global_poses.values()]
+        # global_orients = [v[1] for v in global_poses.values()]
         # print(global_orients)
         # print(User.averagePerVal(global_orients[0], global_orients[1]))
         # 'camera_end_joint': [(0.4393743574619293, -0.051950227469205856, 0.4152250289916992), (-0.0007773424149490893, -0.23344528675079346, -0.0001872739812824875, 0.9723696112632751)],
@@ -340,6 +342,8 @@ class User:
         if tags:
             self.setTargets3D(tags, global_poses)
 
+        # self.manual_control(global_poses, calcIK)
+
         if len(self.targets) == 2:
             self.locking = True
             print(f"Moving guided 2x to {self.target_pos=} {self.target_orient=}")
@@ -347,7 +351,8 @@ class User:
             # self.updateMode()
             old = {k:v for k,v in self.pose.items()}
             # print(f"{old=}")
-            val = 40
+            val = 50
+            self.updateProp(2, self.target_pos)
             if self.lockedin == 0:
                 self.pose = calcIK(self.target_pos, self.target_orient)
                 # print(f"comparing {old=}, {self.pose=}"
@@ -358,9 +363,9 @@ class User:
                         break
                 if compare:
                     self.lockedin = val
-                    self.target_pos[0] += 0.1
+                    # self.target_pos[0] += 0.1
                     # self.target_pos[1] += 0.1
-                    self.target_pos[2] -= 0.1
+                    self.target_pos[2] -= 0.5
                     self.pose = calcIK(self.target_pos, self.target_orient)
             else:
                 # pos, orient = User.Search.search_movement(self, (self.target_pos, self.target_orient))
@@ -373,8 +378,15 @@ class User:
                 # self.target_pos[0] *= (1+Xcent)*amount
                 # self.target_pos[1] *= (1+Ycent)*amount
                 # self.target_pos[1] += 0.1
-                self.target_pos[2] -= self.lockedin/val*2.7
-                self.target_orient = None
+                # self.target_pos[2] -= self.lockedin/val*2.7
+                # self.target_orient = None
+                self.all_targets = {0:[],1:[]}
+                x, y, z = global_poses["end_effector_joint"][0]
+                # z -= 0.1*(val-self.lockedin)
+                # x += 0.1
+                z -= 0.2
+                print(f"Move down {(x,y,x)=}")
+                self.pose = calcIK((x,y,z),  p.getQuaternionFromEuler([0,math.pi/2,0]))
                 # self.target_pos[2] -= 0.3
                 # self.target_pos, self.target_orient = User.Solvo(global_poses, 1.2, 1.2, -1)
                 # self.pose = calcIK(self.target_pos, self.target_orient)
@@ -389,7 +401,10 @@ class User:
                 self.locking = False
         elif not self.locking:
             if self.locked%2:
-                pos, orient = User.Search.search_movement(self)
+                if len(self.targets) == 1:
+                    pos, orient = User.Search.search_movement(self, (self.target_pos, self.target_orient))
+                else:
+                    pos, orient = User.Search.search_movement(self)
                 print(f"Moving unguided search to {pos=} {orient=}")
                 self.pose = calcIK(pos, orient)
             # # print(f"hello {global_poses['end_effector_joint']}")
