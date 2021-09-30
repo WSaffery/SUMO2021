@@ -242,7 +242,8 @@ class User:
             return pos, orient
 
         def get_XY():
-            modes = [(0, 1), (1,0), (0, -1), (-1, 0)]
+            val = 2
+            modes = [(0, val), (val,0), (0, -val), (-val, 0)]
             return modes[User.Search.Mode]
 
     def run(self,
@@ -268,7 +269,7 @@ class User:
             dictionary of joint angles to approximate the pose.
         """
         global_orients = [v[1] for v in global_poses.values()]
-        print(global_orients)
+        # print(global_orients)
         # print(User.averagePerVal(global_orients[0], global_orients[1]))
         # 'camera_end_joint': [(0.4393743574619293, -0.051950227469205856, 0.4152250289916992), (-0.0007773424149490893, -0.23344528675079346, -0.0001872739812824875, 0.9723696112632751)],
 
@@ -299,9 +300,16 @@ class User:
             print(f"Moving guided 2x to {self.target_pos=} {self.target_orient=}")
             # moded_pos = self.modedPos(global_poses["end_effector_joint"][0])
             # self.updateMode()
-            old = [x for x in self.pose]
+            old = {k:v for k,v in self.pose.items()}
+            print(f"{old=}")
             self.pose = calcIK(self.target_pos, self.target_orient)
-            if old == self.pose:
+            print(f"comparing {old=}, {self.pose=}")
+            compare = True
+            for k in old.keys():
+                if old[k] != self.pose[k]:
+                    compare = False
+                    break
+            if compare:
                 print("moving down")
                 self.target_pos[2] -= 0.1
                 self.pose = calcIK(self.target_pos, self.target_orient)
@@ -317,6 +325,7 @@ class User:
                 self.locking = False
         elif not self.locking:
             pos, orient = User.Search.search_movement(self)
+            print(f"Moving unguided search to {pos=} {orient=}")
             if self.locked%2:
                 self.pose = calcIK(pos, orient)
             # # print(f"hello {global_poses['end_effector_joint']}")
