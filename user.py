@@ -124,29 +124,21 @@ class User:
             time.sleep(0.01)
 
         if self.state == RoboStates.Located_1:
+            print(f"{self.targets[0]=}")
             target_id, target_pos = list(self.targets.items())[0]
             unsigned_offset = 0.165
             offset = -unsigned_offset if target_id == 1 else unsigned_offset
-            pos = (target_pos[0]+offset,target_pos[1],target_pos[2])
-            orient = self.roam_default[1]
-            # modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
-            # if self.searchState["Mode"] == 0:
-            #     self.searchState["Val"] += 4
-            # x, y =  modes[self.searchState["Mode"]]
-            # pos = (pos[0]+x, pos[1]+y, pos[2])
-            # self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
-            self.setPose(calcIK, pos, orient)
-            time.sleep(0.01)
+            self.grabTarget = (target_pos[0]+offset,target_pos[1],target_pos[2])
+            self.state = RoboStates.Grabbing
 
         if self.state == RoboStates.Located_2:
+            print(f"{self.targets[0]=}")
+            print(f"{self.targets[1]=}")
             self.grabTarget = (self.targets[0]+self.targets[1])/2
             self.state = RoboStates.Grabbing
 
         if self.state == RoboStates.Grabbing:
-            # async def check():
             old = {k:v for k,v in self.pose.items()}
-            print(f"{self.targets[0]=}")
-            print(f"{self.targets[1]=}")
             print(f"middle {self.grabTarget=}")
             self.setPose(calcIK, self.grabTarget, p.getQuaternionFromEuler([0,math.pi/2,0]))
             compare = True
