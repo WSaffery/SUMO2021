@@ -37,7 +37,7 @@ class User:
         self.targets = {}
         self.visualProps = {}
         self.state = RoboStates.Searching
-        self.searchState = {"Mode": 0, "Val": 2}
+        self.searchState = {"Mode": 0, "Val": 0.3}
         self.grabTarget = []
         return
 
@@ -116,7 +116,7 @@ class User:
             pos, orient = self.roam_default
             modes = [(0, self.searchState["Val"]), (self.searchState["Val"],0), (0, -self.searchState["Val"]), (-self.searchState["Val"], 0)]
             if self.searchState["Mode"] == 0:
-                self.searchState["Val"] += 4
+                self.searchState["Val"] += 0.1
             x, y =  modes[self.searchState["Mode"]]
             pos = (pos[0]+x, pos[1]+y, pos[2])
             self.searchState["Mode"] = (self.searchState["Mode"] + 1)%4
