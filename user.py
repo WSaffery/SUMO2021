@@ -37,7 +37,7 @@ class User:
         self.targets = {}
         self.visualProps = {}
         self.state = RoboStates.Searching
-        self.searchState = {"Mode": 0, "Val": 0.3}
+        self.searchState = {"Mode": 0, "Val": 0.2}
         self.grabTarget = []
         return
 
