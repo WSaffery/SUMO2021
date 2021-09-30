@@ -102,6 +102,7 @@ class User:
         n_tags = len(self.targets)
         image = cv2.putText(image, self.state.name, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
         # the actual machine
+        #Hey buddy
         if self.state == RoboStates.Searching:
             def search_movement(user):
                 pos, orient = user.roam_default
