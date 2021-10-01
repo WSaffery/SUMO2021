@@ -96,7 +96,7 @@ class User:
 
 
         if self.state == RoboStates.Grabbing:
-            self.setPose(calcIK, self.grabTarget+np.array([0,math.sin(time.time()*3)*0.01,0]), None)
+            self.setPose(calcIK, self.grabTarget, None)
             # self.setPose(calcIK, self.grabTarget+np.array([math.sin(time.time()*3)*0.01,math.sin(time.time()*3)*0.01,0]), None)
             if (time.time()-self.enteredGrabbing)>2:
                 self.state = RoboStates.Searching
