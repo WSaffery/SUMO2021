@@ -32,6 +32,7 @@ class User:
         self.targetLastUpdate = {}
         self.state = RoboStates.Searching
         self.grabTarget = []
+        self.trueOffsets = {}
         return
 
     def quaternionRotationMatrix(self, Q): # compressed jay's implementation
@@ -82,8 +83,8 @@ class User:
             self.setPose(calcIK, on_line_pos, [0, math.sqrt(1/2), math.sin(time.time()), math.sqrt(1/2)])
 
         if self.state == RoboStates.Located_1:
-            target_pos = self.targets[0] if 0 in self.targets else self.targets[1]
-            self.trueOffsets[0 if 0 in self.targets else 1]
+            # target_pos = self.targets[0] if 0 in self.targets else self.targets[1]
+            self.grabTarget = self.trueOffsets[0 if 0 in self.targets else 1]
             self.state = RoboStates.Grabbing
             self.enteredGrabbing = time.time()
 
@@ -94,7 +95,8 @@ class User:
 
 
         if self.state == RoboStates.Grabbing:
-            self.setPose(calcIK, self.grabTarget+np.array([math.sin(time.time()*3)*0.01,math.sin(time.time()*3)*0.01,0]), None)
+            self.setPose(calcIK, self.grabTarget+np.array([0,math.sin(time.time()*3)*0.01,0]), None)
+            # self.setPose(calcIK, self.grabTarget+np.array([math.sin(time.time()*3)*0.01,math.sin(time.time()*3)*0.01,0]), None)
             if (time.time()-self.enteredGrabbing)>2:
                 self.state = RoboStates.Searching
                 self.delaySearch = 1
