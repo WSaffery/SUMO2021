@@ -58,8 +58,6 @@ class User:
         if corners:
             for tag,id in zip(corners, ids):
                 rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(tag, 0.06, matrix_coefficients, distCoeffs=None)
-                R, _ = cv2.Rodrigues(rvec)
-                self.trueOffsets[id[0]] = self.inverseCameraProjection(global_poses["camera_end_joint"][0], global_poses["camera_end_joint"][1], tvec[0][0]+np.matmul(np.array([-0.15, 0, 0] if id[0]==0 else [0.15, 0, 0]), R))
                 self.targets[id[0]] = self.inverseCameraProjection(global_poses["camera_end_joint"][0], global_poses["camera_end_joint"][1], tvec[0][0])
                 self.targetLastUpdate[id[0]] = time.time()
                 tags.append([tvec[0][0], id[0]])
@@ -84,8 +82,12 @@ class User:
             self.setPose(calcIK, on_line_pos, [0, math.sqrt(1/2), math.sin(time.time()), math.sqrt(1/2)])
 
         if self.state == RoboStates.Located_1:
-            # target_pos = self.targets[0] if 0 in self.targets else self.targets[1]
-            self.grabTarget = self.trueOffsets[0 if 0 in self.targets else 1]
+            if 0 in self.targets:
+                target_pos = self.targets[0]
+                self.grabTarget = (target_pos[0]+0.15,target_pos[1],target_pos[2])
+            if 1 in self.targets:
+                target_pos = self.targets[1]
+                self.grabTarget = (target_pos[0]-0.15,target_pos[1],target_pos[2])
             self.state = RoboStates.Grabbing
             self.enteredGrabbing = time.time()
 
