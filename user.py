@@ -35,6 +35,7 @@ class User:
         self.targetLastUpdate = {}
         self.state = RoboStates.Searching
         self.grabTarget = []
+        self.trueOffsets = {}
         return
 
     def quaternionRotationMatrix(self, Q): # compressed jay's implementation
@@ -60,6 +61,7 @@ class User:
         if corners:
             for tag,id in zip(corners, ids):
                 rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(tag, 0.06, matrix_coefficients, distCoeffs=None)
+                self.trueOffsets[id[0]] = self.inverseCameraProjection(global_poses["camera_end_joint"][0], global_poses["camera_end_joint"][1], tvec[0][0]+([0.15, 0, 0] if id[0]==0 else [-0.15, 0, 0]))
                 self.targets[id[0]] = self.inverseCameraProjection(global_poses["camera_end_joint"][0], global_poses["camera_end_joint"][1], tvec[0][0])
                 self.targetLastUpdate[id[0]] = time.time()
                 updateProp(id[0], self.targets[id[0]], use3D)
@@ -68,64 +70,45 @@ class User:
 
         n_tags = len(self.targets)
         image = cv2.putText(image, self.state.name, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
-
         if tags:
             if (n_tags==1):
                 self.state = RoboStates.Located_1
             elif (n_tags==2):
                 self.state = RoboStates.Located_2
 
-        if self.state == RoboStates.Searching:
-            on_line_pos = np.array([0.65, 0.15, -0.05]) + math.sin(time.time()) * np.array([0.3, 0.3, 0])
-            self.setPose(calcIK, on_line_pos, [0, np.sqrt(1/2), 0, np.sqrt(1/2)])
 
-        if self.state == RoboStates.Located_1:
+        if self.state == RoboStates.Searching:
             if 0 in self.targets and ((time.time()-self.targetLastUpdate[0])>0.3):
                  del self.targets[0]
             if 1 in self.targets and ((time.time()-self.targetLastUpdate[1])>0.3):
                  del self.targets[1]
-            if 0 in self.targets:
-                target_pos = self.targets[0]
-                self.grabTarget = (target_pos[0]+0.15,target_pos[1],target_pos[2])
-                self.state = RoboStates.Grabbing
-                self.enteredGrabbing = time.time()
-            if 1 in self.targets:
-                target_pos = self.targets[1]
-                self.grabTarget = (target_pos[0]-0.15,target_pos[1],target_pos[2])
-                self.state = RoboStates.Grabbing
-                self.enteredGrabbing = time.time()
+
+            on_line_pos = np.array([0.65, 0.15, 0.35]) + math.sin(time.time()) * np.array([0.3, 0.3, 0])
+            self.setPose(calcIK, on_line_pos, [0, math.sqrt(1/2), math.sin(time.time()), math.sqrt(1/2)])
+
+        if self.state == RoboStates.Located_1:
+            # target_pos = self.targets[0] if 0 in self.targets else self.targets[1]
+            self.grabTarget = self.trueOffsets[0 if 0 in self.targets else 1]
+            self.state = RoboStates.Grabbing
+            self.enteredGrabbing = time.time()
 
         if self.state == RoboStates.Located_2:
-            if ((time.time()-self.targetLastUpdate[0])>0.3):
-                 del self.targets[0]
-            if ((time.time()-self.targetLastUpdate[1])>0.3):
-                 del self.targets[1]
-            n_tags = len(self.targets)
-            if (n_tags==1):
-                self.state = RoboStates.Located_1
-            elif (n_tags==0):
-                self.state = RoboStates.Searching
-            else:
-                self.grabTarget = (self.targets[0]+self.targets[1])/2
-                self.state = RoboStates.Grabbing
-                self.enteredGrabbing = time.time()
+            self.grabTarget = (self.targets[0]+self.targets[1])/2
+            self.state = RoboStates.Grabbing
+            self.enteredGrabbing = time.time()
+
 
         if self.state == RoboStates.Grabbing:
-            # If we're at the vec position, go back to searching
+            pos = self.grabTarget+np.array([0,math.sin(time.time()*3)*0.01,0])
+            updateProp(2, pos, use3D)
+            self.setPose(calcIK, pos, None)
+            # self.setPose(calcIK, self.grabTarget+np.array([math.sin(time.time()*3)*0.01,math.sin(time.time()*3)*0.01,0]), None)
             if (time.time()-self.enteredGrabbing)>2:
                 self.state = RoboStates.Searching
+                self.delaySearch = 1
                 self.targets = {}
-            else:
-                old = {k:v for k,v in self.pose.items()}
-                self.setPose(calcIK, self.grabTarget+np.array([math.sin(time.time()*3)*0.01,math.sin(time.time()*3)*0.01,0]), None)
-                compare = True
-                for k in old.keys():
-                    if round(old[k],3) != round(self.pose[k],3):
-                        compare = False
-                        break
-                if compare:
-                    self.state = RoboStates.Searching
-                    self.targets = {}
+                self.setPose(calcIK, np.array([0.5, 0, 0.5]), None)
+                time.sleep(0.5)
 
         cv2.imshow("View", image)
         cv2.waitKey(1)
