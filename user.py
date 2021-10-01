@@ -65,31 +65,24 @@ class User:
         n_tags = len(self.targets)
         image = cv2.putText(image, self.state.name, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
 
-        if tags:
+        if tags and self.state == RoboStates.Searching:
             if (n_tags==1):
                 self.state = RoboStates.Located_1
             elif (n_tags==2):
                 self.state = RoboStates.Located_2
 
         if self.state == RoboStates.Searching:
-            on_line_pos = np.array([0.65, 0.15, 1.05]) + math.sin(time.time()) * np.array([0.3, 0.3, 0])
-            self.setPose(calcIK, on_line_pos, [0, math.sqrt(1/2), 0, math.sqrt(1/2)])
+            on_line_pos = np.array([0.65, 0.15, 0.35]) + math.sin(time.time()) * np.array([0.3, 0.3, 0])
+            self.setPose(calcIK, on_line_pos, [0, math.sqrt(1/2), math.sin(time.time()), math.sqrt(1/2)])
 
         if self.state == RoboStates.Located_1:
             if 0 in self.targets and ((time.time()-self.targetLastUpdate[0])>0.3):
                  del self.targets[0]
             if 1 in self.targets and ((time.time()-self.targetLastUpdate[1])>0.3):
                  del self.targets[1]
-            if 0 in self.targets:
-                target_pos = self.targets[0]
-                self.grabTarget = (target_pos[0]+0.15,target_pos[1],target_pos[2])
-                self.state = RoboStates.Grabbing
-                self.enteredGrabbing = time.time()
-            if 1 in self.targets:
-                target_pos = self.targets[1]
-                self.grabTarget = (target_pos[0]-0.15,target_pos[1],target_pos[2])
-                self.state = RoboStates.Grabbing
-                self.enteredGrabbing = time.time()
+            n_tags = len(self.targets)
+            self.state = RoboStates.Grabbing
+            self.enteredGrabbing = time.time()
 
         if self.state == RoboStates.Located_2:
             if ((time.time()-self.targetLastUpdate[0])>0.3):
@@ -99,28 +92,31 @@ class User:
             n_tags = len(self.targets)
             if (n_tags==1):
                 self.state = RoboStates.Located_1
+                self.state = RoboStates.Grabbing
+                self.enteredGrabbing = time.time()
             elif (n_tags==0):
                 self.state = RoboStates.Searching
             else:
-                self.grabTarget = (self.targets[0]+self.targets[1])/2
                 self.state = RoboStates.Grabbing
                 self.enteredGrabbing = time.time()
 
         if self.state == RoboStates.Grabbing:
+            if n_tags==2:
+                self.grabTarget = (self.targets[0]+self.targets[1])/2
+                #self.enteredGrabbing = time.time()
+            elif n_tags==1:
+                target_pos = self.targets[0] if 0 in self.targets else self.targets[1]
+                self.grabTarget = (target_pos[0]+0.15,target_pos[1],target_pos[2])
+
+
+        if self.state == RoboStates.Grabbing:
+            self.setPose(calcIK, self.grabTarget+np.array([math.sin(time.time()*3)*0.01,math.sin(time.time()*3)*0.01,0]), None)
             if (time.time()-self.enteredGrabbing)>2:
                 self.state = RoboStates.Searching
+                self.delaySearch = 1
                 self.targets = {}
-            else:
-                old = {k:v for k,v in self.pose.items()}
-                self.setPose(calcIK, self.grabTarget+np.array([math.sin(time.time()*3)*0.01,math.sin(time.time()*3)*0.01,0]), None)
-                compare = True
-                for k in old.keys():
-                    if round(old[k],3) != round(self.pose[k],3):
-                        compare = False
-                        break
-                if compare:
-                    self.state = RoboStates.Searching
-                    self.targets = {}
+                self.setPose(calcIK, np.array([0.5, 0, 0.5]), None)
+                time.sleep(0.5)
 
         cv2.imshow("View", image)
         cv2.waitKey(1)
