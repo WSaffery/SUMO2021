@@ -57,6 +57,7 @@ class User:
         if corners:
             for tag,id in zip(corners, ids):
                 rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(tag, 0.06, matrix_coefficients, distCoeffs=None)
+                self.trueOffsets[id[0]] = self.inverseCameraProjection(global_poses["camera_end_joint"][0], global_poses["camera_end_joint"][1], tvec[0][0]+([0.15, 0, 0] if id[0]==0 else [-0.15, 0, 0]))
                 self.targets[id[0]] = self.inverseCameraProjection(global_poses["camera_end_joint"][0], global_poses["camera_end_joint"][1], tvec[0][0])
                 self.targetLastUpdate[id[0]] = time.time()
                 tags.append([tvec[0][0], id[0]])
@@ -64,29 +65,25 @@ class User:
 
         n_tags = len(self.targets)
         image = cv2.putText(image, self.state.name, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
-        refresh = self.state == RoboStates.Searching
         if tags:
             if (n_tags==1):
                 self.state = RoboStates.Located_1
             elif (n_tags==2):
                 self.state = RoboStates.Located_2
 
-        if refresh:
+
+        if self.state == RoboStates.Searching:
             if 0 in self.targets and ((time.time()-self.targetLastUpdate[0])>0.3):
                  del self.targets[0]
             if 1 in self.targets and ((time.time()-self.targetLastUpdate[1])>0.3):
                  del self.targets[1]
 
-        if self.state == RoboStates.Searching:
             on_line_pos = np.array([0.65, 0.15, 0.35]) + math.sin(time.time()) * np.array([0.3, 0.3, 0])
             self.setPose(calcIK, on_line_pos, [0, math.sqrt(1/2), math.sin(time.time()), math.sqrt(1/2)])
 
         if self.state == RoboStates.Located_1:
             target_pos = self.targets[0] if 0 in self.targets else self.targets[1]
-            if 0 in self.targets:
-                self.grabTarget = (target_pos[0]+0.15,target_pos[1],target_pos[2])
-            if 1 in self.targets:
-                self.grabTarget = (target_pos[0]-0.15,target_pos[1],target_pos[2])
+            self.trueOffsets[0 if 0 in self.targets else 1]
             self.state = RoboStates.Grabbing
             self.enteredGrabbing = time.time()
 
@@ -94,15 +91,6 @@ class User:
             self.grabTarget = (self.targets[0]+self.targets[1])/2
             self.state = RoboStates.Grabbing
             self.enteredGrabbing = time.time()
-
-
-        if self.state == RoboStates.Grabbing:
-            if n_tags==2:
-                self.grabTarget = (self.targets[0]+self.targets[1])/2
-                #self.enteredGrabbing = time.time()
-            elif n_tags==1:
-                target_pos = self.targets[0] if 0 in self.targets else self.targets[1]
-                self.grabTarget = (target_pos[0]+0.15,target_pos[1],target_pos[2])
 
 
         if self.state == RoboStates.Grabbing:
