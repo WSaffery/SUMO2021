@@ -35,3 +35,7 @@ The lowest score wins.
 - [**Robotics, Vision and Control**. *Fundamental algorithms in MATLAB: Second Edition*](https://petercorke.com/rvc/home/)
 
 All commits by William Saffery, Micah Kendal, Jay Taylor and Jarod Grining are GPLv3.
+
+## On Quaternions
+
+We can only ascertain that the working of our quaternion function was willed into place by some higher power. Truly, none of us understand why flipping a negative one to a positive one, and switching height and width in the exact format seen, in our code, worked. In fact, I would go as far as to say that the most rational explanation is infact divine interference. From this experience I can bring about only one conclusion: quaternions are not of this plane of existence. As Lord Kelvin said: "Quaternions [...] have been an unmixed evil."
