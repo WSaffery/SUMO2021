@@ -33,3 +33,5 @@ The lowest score wins.
 
 ## RECOMMENDED READING
 - [**Robotics, Vision and Control**. *Fundamental algorithms in MATLAB: Second Edition*](https://petercorke.com/rvc/home/)
+
+All commits by William Saffery, Micah Kendal, Jay Taylor and Jarod Grining are GPLv3.
