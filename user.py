@@ -58,7 +58,8 @@ class User:
         if corners:
             for tag,id in zip(corners, ids):
                 rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(tag, 0.06, matrix_coefficients, distCoeffs=None)
-                self.trueOffsets[id[0]] = self.inverseCameraProjection(global_poses["camera_end_joint"][0], global_poses["camera_end_joint"][1], tvec[0][0]+([0.15, 0, 0] if id[0]==0 else [-0.15, 0, 0]))
+                R, _ = cv2.Rodrigues(rvec)
+                self.trueOffsets[id[0]] = self.inverseCameraProjection(global_poses["camera_end_joint"][0], global_poses["camera_end_joint"][1], tvec[0][0]+np.matmul(np.array([-0.15, 0, 0] if id[0]==0 else [0.15, 0, 0]), R))
                 self.targets[id[0]] = self.inverseCameraProjection(global_poses["camera_end_joint"][0], global_poses["camera_end_joint"][1], tvec[0][0])
                 self.targetLastUpdate[id[0]] = time.time()
                 tags.append([tvec[0][0], id[0]])
