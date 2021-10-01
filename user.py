@@ -64,47 +64,37 @@ class User:
 
         n_tags = len(self.targets)
         image = cv2.putText(image, self.state.name, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
-
+        refresh = self.state == RoboStates.Searching
         if tags:
             if (n_tags==1):
                 self.state = RoboStates.Located_1
             elif (n_tags==2):
                 self.state = RoboStates.Located_2
 
-        if self.state == RoboStates.Searching:
-            on_line_pos = np.array([0.65, 0.15, 1.05]) + math.sin(time.time()) * np.array([0.3, 0.3, 0])
-            self.setPose(calcIK, on_line_pos, [0, math.sqrt(1/2), 0, math.sqrt(1/2)])
-
-        if self.state == RoboStates.Located_1:
+        if refresh:
             if 0 in self.targets and ((time.time()-self.targetLastUpdate[0])>0.3):
                  del self.targets[0]
             if 1 in self.targets and ((time.time()-self.targetLastUpdate[1])>0.3):
                  del self.targets[1]
+
+        if self.state == RoboStates.Searching:
+            on_line_pos = np.array([0.65, 0.15, 0.35]) + math.sin(time.time()) * np.array([0.3, 0.3, 0])
+            self.setPose(calcIK, on_line_pos, [0, math.sqrt(1/2), math.sin(time.time()), math.sqrt(1/2)])
+
+        if self.state == RoboStates.Located_1:
+            target_pos = self.targets[0] if 0 in self.targets else self.targets[1]
             if 0 in self.targets:
-                target_pos = self.targets[0]
                 self.grabTarget = (target_pos[0]+0.15,target_pos[1],target_pos[2])
-                self.state = RoboStates.Grabbing
-                self.enteredGrabbing = time.time()
             if 1 in self.targets:
-                target_pos = self.targets[1]
                 self.grabTarget = (target_pos[0]-0.15,target_pos[1],target_pos[2])
-                self.state = RoboStates.Grabbing
-                self.enteredGrabbing = time.time()
+            self.state = RoboStates.Grabbing
+            self.enteredGrabbing = time.time()
 
         if self.state == RoboStates.Located_2:
-            if ((time.time()-self.targetLastUpdate[0])>0.3):
-                 del self.targets[0]
-            if ((time.time()-self.targetLastUpdate[1])>0.3):
-                 del self.targets[1]
-            n_tags = len(self.targets)
-            if (n_tags==1):
-                self.state = RoboStates.Located_1
-            elif (n_tags==0):
-                self.state = RoboStates.Searching
-            else:
-                self.grabTarget = (self.targets[0]+self.targets[1])/2
-                self.state = RoboStates.Grabbing
-                self.enteredGrabbing = time.time()
+            self.grabTarget = (self.targets[0]+self.targets[1])/2
+            self.state = RoboStates.Grabbing
+            self.enteredGrabbing = time.time()
+
 
         if self.state == RoboStates.Grabbing:
             if (time.time()-self.enteredGrabbing)>2:
